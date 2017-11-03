@@ -1,1 +1,0 @@
-var ROSLIB = require('roslib');
