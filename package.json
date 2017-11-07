@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/rosmod/rosmct#readme",
   "dependencies": {
+    "express": "^4.16.2",
+    "express-ws": "^3.0.0",
     "roslib": "^0.19.0"
   }
 }
