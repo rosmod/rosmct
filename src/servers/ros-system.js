@@ -9,6 +9,10 @@ var fs = require('fs');
 
 function RosSystem(rosbridgeurl, rosbridgeport) {
     var self = this;
+    
+    self.rosbridgeurl = rosbridgeurl;
+    self.rosbridgeport = rosbridgeport;
+    
     let url = 'ws://' + rosbridgeurl + ':' + rosbridgeport;
     self.subscribers = [];
     self.listeners = [];
