@@ -7,9 +7,9 @@ var Q = require('q');
 var fs = require('fs');
 
 
-function RosSystem(rosurl, rosbridgeport) {
+function RosSystem(rosbridgeurl, rosbridgeport) {
     var self = this;
-    let url = 'ws://' + rosurl + ':' + rosbridgeport;
+    let url = 'ws://' + rosbridgeurl + ':' + rosbridgeport;
     self.subscribers = [];
     self.listeners = [];
     
@@ -36,25 +36,25 @@ RosSystem.prototype.listen = function (listener) {
     }.bind(self);
 };
 
-RosSystem.prototype.connectRos = function (rosurl){
+RosSystem.prototype.connectRos = function (rosbridgeurl){
     var self = this;
     var deferred = Q.defer();
     self.ros = new ROSLIB.Ros({
-        url : rosurl
+        url : rosbridgeurl
     });
 
     self.ros.on('connection', function() {
-        console.log('Connected to rosbridge websocket server at ' + rosurl );
+        console.log('Connected to rosbridge websocket server at ' + rosbridgeurl );
         deferred.resolve();
     });
 
     self.ros.on('error', function(error) {
-        console.log('Error connecting to rosbridge websocket server at ' + rosurl +' : ', error);
+        console.log('Error connecting to rosbridge websocket server at ' + rosbridgeurl +' : ', error);
         deferred.reject();
     });
 
     self.ros.on('close', function() {
-        console.log('Connection to rosbridge websocket server at ' + rosurl + ' closed.');
+        console.log('Connection to rosbridge websocket server at ' + rosbridgeurl + ' closed.');
     });
     return deferred.promise;
 };
@@ -229,6 +229,6 @@ RosSystem.prototype.updateSubscribers = function(){
 
 
 
-module.exports = function (rosurl, rosbridgeport) {
-    return new RosSystem(rosurl, rosbridgeport );
+module.exports = function (rosbridgeurl, rosbridgeport) {
+    return new RosSystem(rosbridgeurl, rosbridgeport );
 };

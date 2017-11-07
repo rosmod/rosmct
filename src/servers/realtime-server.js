@@ -1,25 +1,27 @@
 var express = require('express');
+var RosSystemCollection = require('./ros-system-collection');
 
-function RealtimeServer(rossystem) {
+function RealtimeServer() {
 
     var router = express.Router();
+    var rossystems = new RosSystemCollection;
     
 
     router.ws('/', function (ws) {
-        var unlisten = rossystem.listen(notifySubscribers);
+        var unlisten = rossystems.listen(notifySubscribers);
         var subscribed = {}; // Active subscriptions for this connection
         var handlers = { // Handlers for specific requests
             subscribe: function (id) {
-                console.log("Subsribe Handler for: " + id);
+                console.log("Subsribe Handler for: ", id);
                 subscribed[id] = true;
             },
             unsubscribe: function (id) {
-                console.log("Unsubscribe Handler for: " + id);
+                console.log("Unsubscribe Handler for: ", id);
                 delete subscribed[id];
             },
             dictionary: function() {
                 //console.log('Got dictionary request');
-                rossystem.getDictionary()
+                rossystems.getDictionary()
                     .then(function(dict){
                         //console.log('Sending dictionary over websocket');
                         ws.send(JSON.stringify({
