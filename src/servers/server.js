@@ -1,6 +1,7 @@
 /**
  * Basic implementation of a realtime server.
  */
+/* global require,process */
 
 var RealtimeServer = require('./realtime-server');
 var StaticServer = require('./static-server');

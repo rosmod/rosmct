@@ -1,12 +1,19 @@
-/*
-  Ros.js uses roslib.js to connect to a rosbridge instance and provide telemetry.
+/**
+*  Ros-System uses roslib.js to connect to a rosbridge instance and provide telemetry.
+* @module ros-system
 */
+/* global require module */
+
 
 var ROSLIB = require('roslib');
 var Q = require('q');
 var fs = require('fs');
 
-
+/**
+* Initialize a Ros-System to communicate with rosbrige on the specified url:port
+* @param {string} rosbridgeurl the base url where rosbridge resides
+* @param {string} rosbridgeprot the port number rosbridge is listening on
+*/
 function RosSystem(rosbridgeurl, rosbridgeport) {
     var self = this;
     
@@ -23,6 +30,13 @@ function RosSystem(rosbridgeurl, rosbridgeport) {
         });
 };
 
+/**
+* Calls all registered listener functions on a new telemetry point
+* @param {object} point a telemetry point
+* @param {string} point.id telemetry datum name
+* @param {string} point.timestamp telemetry timestamp (epoch time)
+* @param {object} point.data telemetry data
+*/
 RosSystem.prototype.notify = function (point) {
     var self = this;
     self.listeners.forEach(function (l) {
@@ -30,6 +44,10 @@ RosSystem.prototype.notify = function (point) {
     });
 };
 
+/**
+* Register a listener function to call upon receipt of new telemetry data
+* @param {function} listener callback function for telemetry delivery
+*/
 RosSystem.prototype.listen = function (listener) {
     var self = this;
     self.listeners.push(listener);
@@ -40,6 +58,10 @@ RosSystem.prototype.listen = function (listener) {
     }.bind(self);
 };
 
+/**
+* Establishes a connection to rosbridge via roslibjs
+* @param {string} rosbridgeurl the concantenated url+port where rosbridge is located
+*/
 RosSystem.prototype.connectRos = function (rosbridgeurl){
     var self = this;
     var deferred = Q.defer();
@@ -63,6 +85,11 @@ RosSystem.prototype.connectRos = function (rosbridgeurl){
     return deferred.promise;
 };
 
+/**
+* Parses message details json from rosbridge into the values objects expected by openmct
+* @param {array} detail array of objects with fieldnames and field datatypes
+* @returns {array} array of openmct value objects
+*/
 RosSystem.prototype.parseDetails = function(details) {
     var self = this;
     var parsed = [];
@@ -121,6 +148,10 @@ RosSystem.prototype.parseDetails = function(details) {
     return parsed;
 };
 
+/**
+* Generates an openMCT readable dictionary from rosbridge list of available topics
+* @returns {object} openMCT telemetry dictionary 
+*/
 RosSystem.prototype.generateDictionary = function(){
     var self = this;
     self.topicsListMap = {};
@@ -132,7 +163,7 @@ RosSystem.prototype.generateDictionary = function(){
         return deferred.promise;
     };
 
-    dict = {
+    let dict = {
         "name" : "Ros System",
         "key" : "rs",
         "topics" : []
@@ -176,6 +207,10 @@ RosSystem.prototype.generateDictionary = function(){
         });
 };
 
+/**
+* API to generate and retreive the Ros System's telemetry dictionary
+* @returns {object} telemetry dictionary
+*/
 RosSystem.prototype.getDictionary = function(){
     var self = this;
     var deferred = Q.defer();
@@ -190,6 +225,9 @@ RosSystem.prototype.getDictionary = function(){
     return deferred.promise;
 };
 
+/**
+* Registers subscribers to all avaialable ros topics via rosbridge
+*/
 RosSystem.prototype.updateSubscribers = function(){
     var self = this;
     self.subscribers = [];
@@ -233,6 +271,11 @@ RosSystem.prototype.updateSubscribers = function(){
 
 
 
+/**
+* Create a new ros system with specified url and port
+* @param {string} rosbridgeurl the base url where rosbridge resides
+* @param {string} rosbridgeprot the port number rosbridge is listening on
+*/
 module.exports = function (rosbridgeurl, rosbridgeport) {
     return new RosSystem(rosbridgeurl, rosbridgeport );
 };

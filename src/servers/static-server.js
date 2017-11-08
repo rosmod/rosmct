@@ -1,3 +1,8 @@
+/**
+* Static web server for openmct clients
+* @module static-server
+*/
+/* global require, module */
 var express = require('express');
 
 function StaticServer() {
