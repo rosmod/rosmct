@@ -18,21 +18,21 @@ function RosSystemCollection () {
 };
 
 /**
-* Listener function to operate on a given telemetry point
-* @name listener
-* @function
-* @param {object} point - a telemetry point
-* @param {string} point.id - telemetry datum name
-* @param {string} point.timestamp telemetry timestamp (epoch time)
-* @param {object} point.data telemetry data
-*/
-
-/**
 * Registers a listener function to all systems curently in the collection
 * @param {function} listener - listener function to register
+* @return {array} array of unlisten functions
 */
 RosSystemCollection.prototype.listen = function (listener) {
-  var self = this
+    var self = this
+    
+    var unlisteners = self.systems.map(function(sys) {
+        return sys.listen(listener)
+    })
+    return function(){
+        unlisteners.foreach(function(l){
+            l()  
+        })
+    }
 }
 
 /**
