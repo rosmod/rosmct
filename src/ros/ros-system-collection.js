@@ -1,12 +1,12 @@
 /**
-* Ros-System-Collection contains and interacts with multiple ros-systems 
+* Ros-System-Collection contains and interacts with multiple ros-systems
 * and provides an inteface for treating them as a single entity
 * @module ros-system-collection
 */
 /* global require module */
 
 var RosSystem = require('./ros-system.js')
-var Q = require('q');
+var Q = require('q')
 var dictUtils = require('../utils/dictionaryUtils')
 
 /**
@@ -17,9 +17,9 @@ var dictUtils = require('../utils/dictionaryUtils')
 * @param {string} info.key the collection's id key
 */
 function RosSystemCollection (info) {
-    var self = this
-    self.systems = []
-    self.info = info
+  var self = this
+  self.systems = []
+  self.info = info
 };
 
 /**
@@ -28,16 +28,16 @@ function RosSystemCollection (info) {
 * @return {function} unlisten function
 */
 RosSystemCollection.prototype.listen = function (listener) {
-    var self = this
-    
-    var unlisteners = self.systems.map(function(sys) {
-        return sys.listen(listener)
+  var self = this
+
+  var unlisteners = self.systems.map(function (sys) {
+    return sys.listen(listener)
+  })
+  return function () {
+    unlisteners.foreach(function (l) {
+      l()
     })
-    return function(){
-        unlisteners.foreach(function(l){
-            l()  
-        })
-    }
+  }
 }
 
 /**
@@ -46,15 +46,17 @@ RosSystemCollection.prototype.listen = function (listener) {
 * @returns {object} Composite dictionary of all ros systems
 */
 RosSystemCollection.prototype.getDictionary = function () {
-    var self = this
+  var self = this
 
-    var sysDicts = self.sys.map(function(sys){
-       return sys.getDictionary 
-    });
-    return Q.all(sysDicts)
-        .then(function(dicts){
-            return dictUtils.groupDicts(dicts, self.info); 
-        });
+  var sysDicts = self.sys.map(function (sys) {
+    return sys.getDictionary
+  })
+  return Q.all(sysDicts)
+        .then(function (dicts) {
+          var info = self.info
+          info.membersName = 'Systems'
+          return dictUtils.createDict(info, dicts)
+        })
 }
 
 /**
@@ -73,7 +75,7 @@ RosSystemCollection.prototype.addSystem = function (rosbridgeurl, rosbridgeport,
   })
 
   if (typeof filteredSys === 'undefined' || filteredSys === null || filteredSys.length === 0) {
-      self.systems.push(new RosSystem(rosbridgeurl, rosbridgeport, info))
+    self.systems.push(new RosSystem(rosbridgeurl, rosbridgeport, info))
   }
 }
 
@@ -86,7 +88,7 @@ RosSystemCollection.prototype.removeSystem = function (rosbridgeurl, rosbridgepo
   var self = this
 
   self.systems = self.systems.filter(function (sys) {
-    return sys.rosbridgeurl != rosbridgeurl && sys.rosbridgeport != rosbridgeport
+    return sys.rosbridgeurl !== rosbridgeurl && sys.rosbridgeport !== rosbridgeport
   })
 }
 

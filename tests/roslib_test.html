@@ -11,7 +11,7 @@
       // -----------------
 
       var ros = new ROSLIB.Ros({
-      url : 'ws://10.1.1.106:9090'
+      url : 'ws://localhost:9090'
       });
 
       ros.on('connection', function() {
@@ -27,14 +27,18 @@
       });
 
       var listener = new ROSLIB.Topic({
-        ros : ros,
-        name : '/chatter',
-        messageType : 'beginner_tutorials/Num'
+      ros : ros,
+      name : '/msg',
+      messageType : 'std_msgs/String'
       });
 
       listener.subscribe(function(message) {
-        console.log('Received message on ' + listener.name);
-        console.log(message);
+      console.log('Received message on ' + listener.name);
+      console.log(message);
+      });
+
+      ros.getMessageDetails("geometry_msgs/Twist",function(details){
+      console.log(ros.decodeTypeDefs(details));
       });
 
       
@@ -45,4 +49,4 @@
     <h1>Simple roslib Example</h1>
     <p>Check your Web Console for output.</p>
   </body>
-  </html>
+</html>
