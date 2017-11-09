@@ -5,7 +5,7 @@
 /* global require,module */
 
 var express = require('express');
-var RosSystemCollection = require('./ros-system-collection');
+var RosSystemCollection = require('../ros/ros-system-collection');
 
 /**
 * Sets up handling of web socket connections
@@ -14,7 +14,10 @@ var RosSystemCollection = require('./ros-system-collection');
 function RealtimeServer() {
 
     var router = express.Router();
-    var rossystems = new RosSystemCollection;
+    var rossystems = new RosSystemCollection({
+        name: "Ros Systems",
+        key: "rs"
+    });
     
     /**
      * Web socket setup

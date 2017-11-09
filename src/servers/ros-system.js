@@ -1,24 +1,29 @@
 /**
-*  Ros-System uses roslib.js to connect to a rosbridge instance and provide telemetry.
-* @module ros-system
-*/
+ *  Ros-System uses roslib.js to connect to a rosbridge instance and provide telemetry.
+ * @module ros-system
+ */
 /* global require module */
 
 
 var ROSLIB = require('roslib');
 var Q = require('q');
 var fs = require('fs');
+var dictUtils = require('../utils/dictionaryUtils');
 
 /**
-* Initialize a Ros-System to communicate with rosbrige on the specified url:port
-* @param {string} rosbridgeurl the base url where rosbridge resides
-* @param {string} rosbridgeprot the port number rosbridge is listening on
-*/
-function RosSystem(rosbridgeurl, rosbridgeport) {
+ * Initialize a Ros-System to communicate with rosbrige on the specified url:port
+ * @param {string} rosbridgeurl the base url where rosbridge resides
+ * @param {string} rosbridgeprot the port number rosbridge is listening on
+ * @param {object} info identifier information about the ros system
+ * @param {string} info.name the ros system's name
+ * @param {string} info.key the ros system's id key
+ */
+function RosSystem(rosbridgeurl, rosbridgeport, info) {
     var self = this;
     
     self.rosbridgeurl = rosbridgeurl;
     self.rosbridgeport = rosbridgeport;
+    self.info = info;
     
     let url = 'ws://' + rosbridgeurl + ':' + rosbridgeport;
     self.subscribers = [];
@@ -31,12 +36,12 @@ function RosSystem(rosbridgeurl, rosbridgeport) {
 };
 
 /**
-* Calls all registered listener functions on a new telemetry point
-* @param {object} point a telemetry point
-* @param {string} point.id telemetry datum name
-* @param {string} point.timestamp telemetry timestamp (epoch time)
-* @param {object} point.data telemetry data
-*/
+ * Calls all registered listener functions on a new telemetry point
+ * @param {object} point a telemetry point
+ * @param {string} point.id telemetry datum name
+ * @param {string} point.timestamp telemetry timestamp (epoch time)
+ * @param {object} point.data telemetry data
+ */
 RosSystem.prototype.notify = function (point) {
     var self = this;
     self.listeners.forEach(function (l) {
@@ -45,9 +50,9 @@ RosSystem.prototype.notify = function (point) {
 };
 
 /**
-* Register a listener function to call upon receipt of new telemetry data
-* @param {function} listener callback function for telemetry delivery
-*/
+ * Register a listener function to call upon receipt of new telemetry data
+ * @param {function} listener callback function for telemetry delivery
+ */
 RosSystem.prototype.listen = function (listener) {
     var self = this;
     self.listeners.push(listener);
@@ -59,9 +64,9 @@ RosSystem.prototype.listen = function (listener) {
 };
 
 /**
-* Establishes a connection to rosbridge via roslibjs
-* @param {string} rosbridgeurl the concantenated url+port where rosbridge is located
-*/
+ * Establishes a connection to rosbridge via roslibjs
+ * @param {string} rosbridgeurl the concantenated url+port where rosbridge is located
+ */
 RosSystem.prototype.connectRos = function (rosbridgeurl){
     var self = this;
     var deferred = Q.defer();
@@ -86,72 +91,9 @@ RosSystem.prototype.connectRos = function (rosbridgeurl){
 };
 
 /**
-* Parses message details json from rosbridge into the values objects expected by openmct
-* @param {array} detail array of objects with fieldnames and field datatypes
-* @returns {array} array of openmct value objects
-*/
-RosSystem.prototype.parseDetails = function(details) {
-    var self = this;
-    var parsed = [];
-
-    var formatConversionMap = {
-        "uint64": "int",
-        "int64": "int",
-        "uint32": "int",
-        "int32": "int",
-        "uint16": "int",
-        "int16": "int",
-        "uint8": "int",
-        "int8": "int",
-
-        "float32": "float",
-        "float64": "float",
-
-        "byte": "byte",
-        "string": "string"
-    };
-
-    details.map(function(detail) {
-        for (var i=0; i<detail.fieldtypes.length; i++) {
-            var fieldtype = detail.fieldtypes[i];
-            var name = detail.fieldnames[i];
-            var converted = formatConversionMap[fieldtype];
-            if (converted != undefined) {
-                var value = {
-                    key: name,
-                    name: name,
-                    units: "None",
-                    format: converted,
-                    hints: {
-                        range: 1
-                    }
-                };
-                parsed.push(value);
-            }
-        }
-    });
-
-    var timeval = {
-        key: "utc",
-        source: "timestamp",
-        name: "Timestamp",
-        format: "utc",
-        hints: {
-            domain: 1
-        }
-    };
-    parsed.push(timeval);
-
-    //console.log("PARSED DETAILS");
-    //console.log(parsed);
-
-    return parsed;
-};
-
-/**
-* Generates an openMCT readable dictionary from rosbridge list of available topics
-* @returns {object} openMCT telemetry dictionary 
-*/
+ * Generates an openMCT readable dictionary from rosbridge list of available topics
+ * @returns {object} openMCT telemetry dictionary 
+ */
 RosSystem.prototype.generateDictionary = function(){
     var self = this;
     self.topicsListMap = {};
@@ -163,54 +105,30 @@ RosSystem.prototype.generateDictionary = function(){
         return deferred.promise;
     };
 
-    let dict = {
-        "name" : "Ros System",
-        "key" : "rs",
-        "topics" : []
-    };
-    
     return getTopics()
         .then(function(topics){
-            //console.log("Got Topics " + topics);
-            var tasks = topics.map(function(topic){
-                var deferred = Q.defer();
-                var topicEntry = {
-                    "name" : topic,
-                    "key" : topic,
-                    "values" : []
-                };
-                self.ros.getTopicType(topic, function(type){
+            var topicEntries = topics.map(function(topic){
+                let deferred = Q.defer()
+                let topicInfo = {name: topic}
+                self.ros.getTopicType(topicInfo.name, function(type){
                     self.ros.getMessageDetails(type, function(details){
-                        // return the details
-                        //console.log(details);
-                        deferred.resolve(details);
-                    });
-                });
-                return deferred.promise
-                    .then(function(details) {
-                        // parse details
-                        //console.log("GOT DETAILS:");
-                        //console.log(details);
-                        topicEntry.values = self.parseDetails(details);
-                        //console.log(topicEntry.values);
-                        return topicEntry;
-                    });
-            });
-            return Q.all(tasks)
-                .then(function(topicEntryArray) {
-                    //console.log(topicEntryArray);
-                    //console.log(process.cwd());
-                    dict.topics = topicEntryArray;
-                    fs.writeFileSync('rosDictionary.json', JSON.stringify(dict, null, 2) , 'utf-8');
-                    return dict;
-                });
+                        topicInfo.details = details
+                        deferred.resolve(dictUtils.createDictEntry(topicInfo))
+                    })
+                })
+                return deferred.promise()
+            })
+            return Q.all(topicEntries)  
+        })
+        .then(function(topicentries){
+            dictUtils.createDict(self.info,topicentries)
         });
 };
 
 /**
-* API to generate and retreive the Ros System's telemetry dictionary
-* @returns {object} telemetry dictionary
-*/
+ * API to generate and retreive the Ros System's telemetry dictionary
+ * @returns {object} telemetry dictionary
+ */
 RosSystem.prototype.getDictionary = function(){
     var self = this;
     var deferred = Q.defer();
@@ -226,8 +144,8 @@ RosSystem.prototype.getDictionary = function(){
 };
 
 /**
-* Registers subscribers to all avaialable ros topics via rosbridge
-*/
+ * Registers subscribers to all avaialable ros topics via rosbridge
+ */
 RosSystem.prototype.updateSubscribers = function(){
     var self = this;
     self.subscribers = [];
@@ -271,11 +189,5 @@ RosSystem.prototype.updateSubscribers = function(){
 
 
 
-/**
-* Create a new ros system with specified url and port
-* @param {string} rosbridgeurl the base url where rosbridge resides
-* @param {string} rosbridgeprot the port number rosbridge is listening on
-*/
-module.exports = function (rosbridgeurl, rosbridgeport) {
-    return new RosSystem(rosbridgeurl, rosbridgeport );
-};
+/** return constructor */
+module.exports =  RosSystem

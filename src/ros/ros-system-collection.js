@@ -7,20 +7,25 @@
 
 var RosSystem = require('./ros-system.js')
 var Q = require('q');
+var dictUtils = require('../utils/dictionaryUtils')
 
 /**
 * Initialize an empty collection
 * @constructor
+* @param {object} info identifier information about the collection
+* @param {string} info.name the collection's name
+* @param {string} info.key the collection's id key
 */
-function RosSystemCollection () {
-  var self = this
-  self.systems = []
+function RosSystemCollection (info) {
+    var self = this
+    self.systems = []
+    self.info = info
 };
 
 /**
 * Registers a listener function to all systems curently in the collection
 * @param {function} listener - listener function to register
-* @return {array} array of unlisten functions
+* @return {function} unlisten function
 */
 RosSystemCollection.prototype.listen = function (listener) {
     var self = this
@@ -41,15 +46,26 @@ RosSystemCollection.prototype.listen = function (listener) {
 * @returns {object} Composite dictionary of all ros systems
 */
 RosSystemCollection.prototype.getDictionary = function () {
-  var self = this
+    var self = this
+
+    var sysDicts = self.sys.map(function(sys){
+       return sys.getDictionary 
+    });
+    return Q.all(sysDicts)
+        .then(function(dicts){
+            return dictUtils.groupDicts(dicts, self.info); 
+        });
 }
 
 /**
 * Creates and adds a new Ros-System to the collection
-* @param {string} rosbridgeurl - the base url where rosbridge resides
-* @param {string} rosbridgeport - the port number rosbridge is listening on
+* @param {string} rosbridgeurl the base url where rosbridge resides
+* @param {string} rosbridgeport the port number rosbridge is listening on
+* @param {object} info identifier information about the ros system
+* @param {string} info.name the ros system's name
+* @param {string} info.key the ros system's id key
 */
-RosSystemCollection.prototype.addSystem = function (rosbridgeurl, rosbridgeport) {
+RosSystemCollection.prototype.addSystem = function (rosbridgeurl, rosbridgeport, info) {
   var self = this
 
   let filteredSys = self.systems.filter(function (sys) {
@@ -57,7 +73,7 @@ RosSystemCollection.prototype.addSystem = function (rosbridgeurl, rosbridgeport)
   })
 
   if (typeof filteredSys === 'undefined' || filteredSys === null || filteredSys.length === 0) {
-    self.systems.push(new RosSystem(rosbridgeurl, rosbridgeport))
+      self.systems.push(new RosSystem(rosbridgeurl, rosbridgeport, info))
   }
 }
 
@@ -74,7 +90,5 @@ RosSystemCollection.prototype.removeSystem = function (rosbridgeurl, rosbridgepo
   })
 }
 
-/** Create a new empty collection */
-module.exports = function () {
-  return new RosSystemCollection()
-}
+/** return constructor */
+module.exports = RosSystemCollection
