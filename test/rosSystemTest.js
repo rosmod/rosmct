@@ -1,22 +1,40 @@
 var ROSLIB = require('roslib')
 var Q = require('q')
 var fs = require('fs')
+var RosSystem = require('./../src/ros/ros-system.js')
+
+
 
 var testSys
 
-fs.readFile('test/testSystem.json', 'utf8', function(err, data){
-    if(err) throw err;
-    testSys = JSON.parse(data);
-    console.log(testSys)
-    console.log(testSys["Rosbridge URL"])
+function test(testSys){
 
-    var ros = new ROSLIB.Ros({
-        url: testSys["Rosbridge URL"]
+    console.log("Beginning Test...")
+    
+    var rosSys = new RosSystem(testSys["Rosbridge URL"], testSys["Rosbridge Port"], {
+        name: "Test System",
+        key: "TestKey"
     })
 
-    console.log('tst')
+    console.log(rosSys.getDictionary());
+    
+    rosSys.getDictionary().then(function(dict){
+        console.log(JSON.stringify(dict))
+    })
+}
+
+//check that the test system is present and can be connected with roslib
+fs.readFile('test/testSystem.json', 'utf8', function(err, data){
+    if(err) throw err
+    testSys = JSON.parse(data)
+
+    var ros = new ROSLIB.Ros({
+        url: "ws://" + testSys["Rosbridge URL"] + ":" + testSys["Rosbridge Port"]
+    })
+
     ros.on('connection', function(){
-        console.log('Connected to rosbridge server at ' + testSys["Rosbridge URL"])
+        console.log('Test connection successful to rosbridge server at ' + testSys["Rosbridge URL"])
+        ros.close()
     })
 
     ros.on('error', function(){
@@ -24,6 +42,7 @@ fs.readFile('test/testSystem.json', 'utf8', function(err, data){
     })
 
     ros.on('close', function(){
-        console.log('Connection to rosbridge websocket server at ' + testSys["Rosbridge URL"] + ' closed')
+        console.log('Closing test connection to rosbridge websocket server at ' + testSys["Rosbridge URL"])
+        test(testSys)
     })
 })
