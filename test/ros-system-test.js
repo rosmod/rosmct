@@ -18,12 +18,21 @@ function test(testSys){
     })
 
 
-    console.log("Connection Success!")
-    console.log("Retrieving dicitonary")
-
     rosSys.getDictionary()
         .then(function(dict){
-            console.log(JSON.stringify(dict, null, 2))
+            console.log("Dictionary Retrieved")
+//            console.log(JSON.stringify(dict, null, 2))
+            console.log('Number of topics in dictionary: ', dict.topics.length)
+            console.log('Number of topic subscribers in rosSys: ', rosSys.subscribers.length)
+            var unlisten = rosSys.listen(function(point){
+                //console.log('Received telemetry point of type: ', point.id)
+                console.log('Received telemetry point: ', point)
+                console.log('Unlistening...')
+                unlisten()
+                console.log('RosSys listeners:', rosSys.listeners.length)
+                rosSys.disconnectRos()
+            })
+            console.log('RosSys listeneres:', rosSys.listeners.length)
         })
 
 

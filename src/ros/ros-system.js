@@ -30,7 +30,6 @@ function RosSystem (rosbridgeurl, rosbridgeport, info) {
 
     self.connectRos(url)
         .then(function () {
-            console.log("Generating Dictionary")
             self.generateDictionary()
         })
 };
@@ -90,6 +89,11 @@ RosSystem.prototype.connectRos = function (rosbridgeurl) {
     return deferred.promise
 }
 
+RosSystem.prototype.disconnectRos = function(){
+    var self = this
+    self.ros.close()
+}
+
 /**
  * Generates an openMCT readable dictionary from rosbridge list of available topics
  * @returns {object} openMCT telemetry dictionary
@@ -122,33 +126,26 @@ RosSystem.prototype.generateDictionary = function () {
              topicN: typeN
              }
              */
-            
-            var tmp = {};
+            var tmp = {}
             for(let i = 0; i < topics.topics.length; i++){
                 tmp[topics.topics[i]] = topics.types[i]
             }
             topics = tmp
-            console.log(topics)
-            var topicEntries = topics.map(function (topic) {
-                console.log(topic);
+            var topicEntries = Object.keys(topics).map(function (topic) {
                 let deferred = Q.defer()
-                self.ros.getTopicType(topic, function (type) {
-                    console.log(3)
-                    self.ros.getMessageDetails(type, function (details) {
-                        let topicInfo = {
-                            name: topic,
-                            type: type,
-                            details: details
-                        }
-                        deferred.resolve(dictUtils.createDictEntry(topicInfo))
-                    })
+                self.ros.getMessageDetails(topics[topic], function (details) {
+                    let topicInfo = {
+                        name: topic,
+                        type: topics[topic],
+                        details: details
+                    }
+                    deferred.resolve(dictUtils.createDictEntry(topicInfo))
                 })
-                return deferred.promise()
+                return deferred.promise
             })
             return Q.all(topicEntries)
         })
         .then(function (topicentries) {
-            console.log(4)
             var info = self.info
             info.membersName = 'topics'
             self.dictionary = dictUtils.createDict(info, topicentries)
@@ -172,27 +169,45 @@ RosSystem.prototype.getDictionary = function () {
 RosSystem.prototype.updateSubscribers = function () {
     var self = this
     self.subscribers = []
-
-    self.subscribers.push(new ROSLIB.Topic({
-        ros: self.ros,
-        name: '/listener',
-        messageType: 'std_msgs/String'
-    }))
-
+    
     self.dictionary.topics.forEach(function (topic) {
-        self.subscribers.push(new ROSLIB.Topic({
+        let s = new ROSLIB.Topic({
             ros: self.ros,
             name: topic.name,
-            messageType: topic.type
-        }))
-    })
-    self.subscribers.forEach(function (s) {
+            messageType: topic.key
+        })
+
+        /**
+         * Define the method of parsing subscriber message into key:value pairs
+         */
+        s.parse = function(message){
+            let values = {}
+            topic.values.forEach(function(val){
+                if(val.name != 'Timestamp'){
+                    var path = val.name.split('.')
+                    console.log('path: ', path)
+                    var tmp = message
+                    for(let i = 0; i < path.length; i++){
+                        tmp = tmp[path[i]]
+                    }
+                    values[path] = tmp
+                }
+                /*if(typeof message[val.name] != 'Object'){
+                    values[val.name] = message[val.name]
+                } else {
+                    values[val.name] = s.parse(message[val.name]);
+                }*/
+            })
+            return values
+        }
+
+        //subscribe to each topic
         s.subscribe(function (message) {
             var timestamp = Date.now()
-            var state = {timestamp: timestamp, value: message.data, id: s.name}
-            console.log(state)
+            var state = {timestamp: timestamp, value: s.parse(message), id: s.name}
             self.notify(state)
-        })
+        })        
+        self.subscribers.push(s)
     })
 }
 

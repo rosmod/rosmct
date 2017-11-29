@@ -37,7 +37,7 @@ function createDictEntry(topicInfo){
         key : topicInfo.type,
         values : []
     }
-    topicEntry.values = parseDetails(topicInfo.details);
+    topicEntry.values = parseDetails(topicInfo.details)
     return topicEntry
 }
 
@@ -49,9 +49,10 @@ function createDictEntry(topicInfo){
 function parseDetails(topicDetails){
     var self = this;
     var parsed = [];
-
+    console.log('Topic Details', topicDetails)
 
     topicDetails.map(function(detail) {
+        
         for (let i=0; i<detail.fieldtypes.length; i++) {
             var fieldtype = detail.fieldtypes[i];
             var name = detail.fieldnames[i];
@@ -82,7 +83,6 @@ function parseDetails(topicDetails){
         }
     };
     parsed.push(timeval);
-
     return parsed;    
 }
 
