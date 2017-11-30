@@ -21,7 +21,7 @@ function test(testSys){
     rosSys.getDictionary()
         .then(function(dict){
             console.log("Dictionary Retrieved")
-//            console.log(JSON.stringify(dict, null, 2))
+            console.log(JSON.stringify(dict, null, 2))
             console.log('Number of topics in dictionary: ', dict.topics.length)
             console.log('Number of topic subscribers in rosSys: ', rosSys.subscribers.length)
             var unlisten = rosSys.listen(function(point){

@@ -48,11 +48,27 @@ function createDictEntry(topicInfo){
  */
 function parseDetails(topicDetails){
     var self = this;
-    var parsed = [];
-    console.log('Topic Details', topicDetails)
+    var parsedDetails = [];
 
-    topicDetails.map(function(detail) {
+    function getSubVals(subFieldType,parentName){
+        var subDetail = topicDetails.filter(function(detail){
+            return detail.type === subFieldType
+        })[0]
+
+        //console.log('Preparing to parse subdetail: ',subDetail)
+        var parsedSubDetail = parseDetail(subDetail)
+        parsedSubDetail.map(function(value){
+            value.key = parentName + "." + value.key
+            value.name = parentName + "." + value.name
+        })
+        //console.log('Parsed subdetail', parsedSubDetail)
+        return parsedSubDetail
         
+    }
+
+    function parseDetail(detail){
+        //console.log("Preparing to parse detail:", detail)
+        var parsedDetail = []
         for (let i=0; i<detail.fieldtypes.length; i++) {
             var fieldtype = detail.fieldtypes[i];
             var name = detail.fieldnames[i];
@@ -66,11 +82,26 @@ function parseDetails(topicDetails){
                     hints: {
                         range: 1
                     }
-                };
-                parsed.push(value);
+                }
+                parsedDetail.push(value);
+                //console.log('Parsed Detail', parsedDetail)
+            } else {
+                //console.log("Detail value has child values:", name)
+                parsedDetail = parsedDetail.concat(getSubVals(fieldtype, name))
+                //console.log("Parsed Detail", parsedDetail)
             }
         }
-    });
+        return parsedDetail
+    }
+    
+    //console.log('Topic Details: ', topicDetails)
+    
+    parsedDetails = parsedDetails.concat(parseDetail(topicDetails[0]))
+    
+
+    //console.log(parsedDetails);
+
+
 
     //every entry always has a time value
     var timeval = {
@@ -82,8 +113,9 @@ function parseDetails(topicDetails){
             domain: 1
         }
     };
-    parsed.push(timeval);
-    return parsed;    
+    parsedDetails.push(timeval);
+    //console.log('Parsed: ', parsedDetails)
+    return parsedDetails;    
 }
 
 /**
