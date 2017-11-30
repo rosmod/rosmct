@@ -55,19 +55,16 @@ function parseDetails(topicDetails){
             return detail.type === subFieldType
         })[0]
 
-        //console.log('Preparing to parse subdetail: ',subDetail)
         var parsedSubDetail = parseDetail(subDetail)
         parsedSubDetail.map(function(value){
             value.key = parentName + "." + value.key
             value.name = parentName + "." + value.name
         })
-        //console.log('Parsed subdetail', parsedSubDetail)
         return parsedSubDetail
         
     }
 
     function parseDetail(detail){
-        //console.log("Preparing to parse detail:", detail)
         var parsedDetail = []
         for (let i=0; i<detail.fieldtypes.length; i++) {
             var fieldtype = detail.fieldtypes[i];
@@ -84,26 +81,15 @@ function parseDetails(topicDetails){
                     }
                 }
                 parsedDetail.push(value);
-                //console.log('Parsed Detail', parsedDetail)
             } else {
-                //console.log("Detail value has child values:", name)
                 parsedDetail = parsedDetail.concat(getSubVals(fieldtype, name))
-                //console.log("Parsed Detail", parsedDetail)
             }
         }
         return parsedDetail
     }
     
-    //console.log('Topic Details: ', topicDetails)
-    
     parsedDetails = parsedDetails.concat(parseDetail(topicDetails[0]))
-    
 
-    //console.log(parsedDetails);
-
-
-
-    //every entry always has a time value
     var timeval = {
         key: "utc",
         source: "timestamp",
@@ -114,7 +100,6 @@ function parseDetails(topicDetails){
         }
     };
     parsedDetails.push(timeval);
-    //console.log('Parsed: ', parsedDetails)
     return parsedDetails;    
 }
 

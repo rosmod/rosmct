@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "OpenMCT integration with Ros",
   "scripts": {
-    "ros-system-test": "node test/ros-system-test.js"
+      "ros-system-test": "node test/ros-system-test.js",
+      "ros-system-collection-test": "node test/ros-system-collection-test.js",
+      "realtime-server-test": "node test/realtime-server-test.js"
   },
   "repository": {
     "type": "git",

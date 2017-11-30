@@ -18,20 +18,13 @@ var dictUtils = require('../utils/dictionaryUtils')
  */
 function RosSystem (rosbridgeurl, rosbridgeport, info) {
     var self = this
-
     self.rosbridgeurl = rosbridgeurl
     self.rosbridgeport = rosbridgeport
     self.info = info
     self.dictionaryPromise = Q.defer()
 
-    let url = 'ws://' + rosbridgeurl + ':' + rosbridgeport
     self.subscribers = []
     self.listeners = []
-
-    self.connectRos(url)
-        .then(function () {
-            self.generateDictionary()
-        })
 };
 
 /**
@@ -66,9 +59,12 @@ RosSystem.prototype.listen = function (listener) {
  * Establishes a connection to rosbridge via roslibjs
  * @param {string} rosbridgeurl the concantenated url+port where rosbridge is located
  */
-RosSystem.prototype.connectRos = function (rosbridgeurl) {
+RosSystem.prototype.connectRos = function () {
     var self = this
     var deferred = Q.defer()
+
+    var rosbridgeurl = 'ws://' + self.rosbridgeurl + ':' + self.rosbridgeport
+
     self.ros = new ROSLIB.Ros({
         url: rosbridgeurl
     })
@@ -87,6 +83,9 @@ RosSystem.prototype.connectRos = function (rosbridgeurl) {
         console.log('Connection to rosbridge websocket server at ' + rosbridgeurl + ' closed.')
     })
     return deferred.promise
+        .then(function() {
+            self.generateDictionary();
+        });
 }
 
 RosSystem.prototype.disconnectRos = function(){
@@ -185,7 +184,7 @@ RosSystem.prototype.updateSubscribers = function () {
             topic.values.forEach(function(val){
                 if(val.name != 'Timestamp'){
                     var path = val.name.split('.')
-                    console.log('path: ', path)
+                    //console.log('path: ', path)
                     var tmp = message
                     for(let i = 0; i < path.length; i++){
                         tmp = tmp[path[i]]
