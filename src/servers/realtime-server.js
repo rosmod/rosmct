@@ -16,7 +16,7 @@ function RealtimeServer() {
     var router = express.Router();
     var rossystems = new RosSystemCollection({
         name: "Ros Systems",
-        key: "rs"
+        key: "rsCollection"
     });
 
     /**

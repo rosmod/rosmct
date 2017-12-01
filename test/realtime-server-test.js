@@ -90,13 +90,14 @@ function test(testSys){
         console.log('Received Message: ', message)
         if(msg.type === 'dictionary'){
             console.log('Received Dictionary: ', JSON.stringify(msg.value,null,2))
-            //console.log('Subscribing to /array')
-            //ws.send('subscribe /array')
             console.log("Subscribing to 'Test System/twist'")
             ws.send('subscribe Test System/twist')
             
         } else if (msg.type === 'point'){
             console.log('Received Telemetry Point: ', JSON.stringify(msg.value, null, 2))
+            console.log("Unsubscribing from 'Test System/twist'" )
+            ws.send('unsubscribe Test System/twist')
+
         } else{
             console.log('Received invalid message')
         }
