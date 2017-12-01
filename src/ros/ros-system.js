@@ -70,17 +70,14 @@ RosSystem.prototype.connectRos = function () {
     })
 
     self.ros.on('connection', function () {
-        console.log('Connected to rosbridge websocket server at ' + rosbridgeurl)
         deferred.resolve()
     })
 
     self.ros.on('error', function (error) {
-        console.log('Error connecting to rosbridge websocket server at ' + rosbridgeurl + ' : ', error)
         deferred.reject()
     })
 
     self.ros.on('close', function () {
-        console.log('Connection to rosbridge websocket server at ' + rosbridgeurl + ' closed.')
     })
     return deferred.promise
         .then(function() {
@@ -184,18 +181,12 @@ RosSystem.prototype.updateSubscribers = function () {
             topic.values.forEach(function(val){
                 if(val.name != 'Timestamp'){
                     var path = val.name.split('.')
-                    //console.log('path: ', path)
                     var tmp = message
                     for(let i = 0; i < path.length; i++){
                         tmp = tmp[path[i]]
                     }
-                    values[path] = tmp
+                    values[val.name] = tmp
                 }
-                /*if(typeof message[val.name] != 'Object'){
-                    values[val.name] = message[val.name]
-                } else {
-                    values[val.name] = s.parse(message[val.name]);
-                }*/
             })
             return values
         }
@@ -203,7 +194,7 @@ RosSystem.prototype.updateSubscribers = function () {
         //subscribe to each topic
         s.subscribe(function (message) {
             var timestamp = Date.now()
-            var state = {timestamp: timestamp, value: s.parse(message), id: s.name}
+            var state = {timestamp: timestamp, value: s.parse(message), id: self.info.name + s.name}
             self.notify(state)
         })        
         self.subscribers.push(s)

@@ -34,7 +34,6 @@ RosSystemCollection.prototype.listen = function (listener) {
         return sys.listen(listener)
     })
     return function () {
-        console.log("Unlisteners: ", unlisteners)
         unlisteners.map(function (l) {
             l()
         })
@@ -48,7 +47,6 @@ RosSystemCollection.prototype.listen = function (listener) {
  */
 RosSystemCollection.prototype.getDictionary = function () {
     var self = this
-    console.log(self.systems)
     var sysDicts = self.systems.map(function (sys) {
         return sys.getDictionary()
     })
@@ -80,7 +78,6 @@ RosSystemCollection.prototype.addSystem = function (rosbridgeurl, rosbridgeport,
         var sys = new RosSystem(rosbridgeurl, rosbridgeport, info)
         sys.connectRos()
             .then(function() {
-                console.log("System Added", sys)
                 self.systems.push(sys)
                 deferred.resolve();
             });

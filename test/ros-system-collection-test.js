@@ -38,7 +38,7 @@ function test(testSys){
                 //console.log('Received telemetry point of type: ', point.id)
                 console.log('Received telemetry point: ', point)
                 console.log('Unlistening...')
-                //unlisten()
+                unlisten()
                 //console.log('RosSys listeners:', rosSysCollection.listeners.length)
                 rosSysCollection.removeSystem(testSys["Rosbridge URL"], testSys["Rosbridge Port"])
             })

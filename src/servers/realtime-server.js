@@ -18,9 +18,28 @@ function RealtimeServer() {
         name: "Ros Systems",
         key: "rs"
     });
+
+    /**
+     * Rosbridge notification websocket setup
+     * @param {object} ws websocket
+     */
+    router.ws('/notify', function(ws){
+        
+        ws.on('message', function(message){
+            var msg = JSON.parse(message);
+            if(msg.status === 'OPEN'){
+                rossystems.addSystem(msg.rosbridgeurl, msg.rosbridgeport, {
+                    name: msg.name,
+                    key: 'rs'
+                })
+            } else if (msg.status === 'CLOSE'){
+                rossystems.removeSystem(msg.rosbridgeurl, msg.rosbridgeport)
+            }
+        })
+    })
     
     /**
-     * Web socket setup
+     * Client websocket setup
      * @param {object} ws websocket
      */
     router.ws('/', function (ws) {
@@ -36,7 +55,6 @@ function RealtimeServer() {
              * @param {string} id telemetry datum id
              */
             subscribe: function (id) {
-                console.log("Subsribe Handler for: ", id);
                 subscribed[id] = true;
             },
             /**
@@ -44,7 +62,6 @@ function RealtimeServer() {
              * @param {string} id telemetry datum id
              */
             unsubscribe: function (id) {
-                console.log("Unsubscribe Handler for: ", id);
                 delete subscribed[id];
             },
             /**
@@ -52,10 +69,8 @@ function RealtimeServer() {
              * Sends dictionary request over websocket
              */
             dictionary: function() {
-                //console.log('Got dictionary request');
                 rossystems.getDictionary()
                     .then(function(dict){
-                        //console.log('Sending dictionary over websocket');
                         ws.send(JSON.stringify({
                             type: "dictionary",
                             value: dict
@@ -75,6 +90,7 @@ function RealtimeServer() {
          */
         function notifySubscribers(point) {
             if (subscribed[point.id]) {
+
                 ws.send(JSON.stringify({
                     type: "point",
                     value: point
@@ -87,7 +103,12 @@ function RealtimeServer() {
             var parts = message.split(' '),
                 handler = handlers[parts[0]];
             if (handler) {
-                handler.apply(handlers, parts.slice(1));
+                parts = parts.slice(1)
+                if(parts.length >1){
+                    parts = [parts.join(' ')]
+
+                }
+                handler.apply(handlers, parts);
             }
         });
 
