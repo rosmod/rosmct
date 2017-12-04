@@ -30,7 +30,7 @@ function RealtimeServer() {
             if(msg.status === 'OPEN'){
                 rossystems.addSystem(msg.rosbridgeurl, msg.rosbridgeport, {
                     name: msg.name,
-                    key: 'rs'
+                    key: 'ros.system'
                 })
             } else if (msg.status === 'CLOSE'){
                 rossystems.removeSystem(msg.rosbridgeurl, msg.rosbridgeport)

@@ -1,31 +1,34 @@
 {
-  "name": "rosmct",
-  "version": "0.1.0",
-  "description": "OpenMCT integration with Ros",
-  "scripts": {
-    "ros-system-test": "node test/ros-system-test.js",
-    "ros-system-collection-test": "node test/ros-system-collection-test.js",
-    "realtime-server-test": "node test/realtime-server-test.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://dwatkins@github.com/rosmod/rosmct.git"
-  },
-  "keywords": [
-    "ros",
-    "openmct"
-  ],
-  "author": "openmct",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/rosmod/rosmct/issues"
-  },
-  "homepage": "https://github.com/rosmod/rosmct#readme",
-  "dependencies": {
-    "express": "^4.16.2",
-    "express-ws": "^3.0.0",
-    "q": "^1.5.1",
-    "roslib": "^0.19.0",
-    "ws": "^3.3.2"
-  }
+    "name": "rosmct",
+    "version": "0.1.0",
+    "description": "OpenMCT integration with Ros",
+    "scripts": {
+        "start": "node src/servers/server.js",
+        "ros-system-test": "node test/ros-system-test.js",
+        "ros-system-collection-test": "node test/ros-system-collection-test.js",
+        "realtime-server-test": "node test/realtime-server-test.js",
+        "postinstall": "cd node_modules/openmct && npm install"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://dwatkins@github.com/rosmod/rosmct.git"
+    },
+    "keywords": [
+        "ros",
+        "openmct"
+    ],
+    "author": "openmct",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/rosmod/rosmct/issues"
+    },
+    "homepage": "https://github.com/rosmod/rosmct#readme",
+    "dependencies": {
+        "express": "^4.16.2",
+        "express-ws": "^3.0.0",
+        "openmct": "nasa/openmct",
+        "q": "^1.5.1",
+        "roslib": "^0.19.0",
+        "ws": "^3.3.2"
+    }
 }
