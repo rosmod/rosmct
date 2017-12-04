@@ -74,6 +74,7 @@ RosSystem.prototype.connectRos = function () {
     })
 
     self.ros.on('error', function (error) {
+        console.log('Roslib connection error', error)
         deferred.reject()
     })
 

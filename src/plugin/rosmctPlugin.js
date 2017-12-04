@@ -103,7 +103,6 @@
                      * @param {object} identifier.key
                      */
                     get: function(identifier){
-                        console.log('Identifier: ', identifier);
 
                         return getDictionary().then(function(dictionary){
                             if (identifier.key === 'rsCollection'){
@@ -111,7 +110,7 @@
                                     identifier: identifier,
                                     name: dictionary.name,
                                     type: 'folder',
-                                    location: 'Root'
+                                    location: 'ROOT'
                                 }
                             } else {
                                 return {
@@ -148,8 +147,10 @@
 
 
                 /**
-                 * Factory that generates object and composiition providers for each system within rosmct
-                 * @returns {Array} array of objects containing object provider and composition provider
+                 * Factory that generates object and composiition
+                 * providers for each system within rosmct @returns
+                 * {Array} array of objects containing object provider
+                 * and composition provider
                  */
                 function systemProviderFactory(){
                     return getDictionary().then(function(dictionary){
@@ -181,7 +182,7 @@
                                             var t =  {
                                                 identifier: identifier,
                                                 name: topic.name,
-                                                type: 'ros.topic.telemetry',
+                                                type: 'folder',
                                                 location: namespace + ':ros.system' 
                                             }
                                             console.log('returning topic', t)
@@ -200,7 +201,7 @@
                             let systemCompositionProvider = {
                                 appliesTo: function(domainObject){
                                     return domainObject.identifier.namespace === namespace &&
-                                        domainObject.type === 'folder'
+                                        domainObject.identifier.key === 'ros.system'
                                 },
                                 load: function(domainObject){
                                     var deferred = Q.defer()

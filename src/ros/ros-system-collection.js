@@ -76,6 +76,7 @@ RosSystemCollection.prototype.addSystem = function (rosbridgeurl, rosbridgeport,
 
     if (typeof filteredSys === 'undefined' || filteredSys === null || filteredSys.length === 0) {
         var sys = new RosSystem(rosbridgeurl, rosbridgeport, info)
+        console.log('Ros Sys Collection adding system: ', sys)
         sys.connectRos()
             .then(function() {
                 self.systems.push(sys)

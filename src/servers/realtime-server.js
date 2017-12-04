@@ -26,6 +26,7 @@ function RealtimeServer() {
     router.ws('/notify', function(ws){
         
         ws.on('message', function(message){
+            console.log('Notification Message: ', JSON.stringify(message, null, 2))
             var msg = JSON.parse(message);
             if(msg.status === 'OPEN'){
                 rossystems.addSystem(msg.rosbridgeurl, msg.rosbridgeport, {
