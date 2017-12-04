@@ -194,7 +194,12 @@ RosSystem.prototype.updateSubscribers = function () {
         //subscribe to each topic
         s.subscribe(function (message) {
             var timestamp = Date.now()
-            var state = {timestamp: timestamp, value: s.parse(message), id: self.info.name + s.name}
+            var state = {
+                timestamp: timestamp,
+                value: s.parse(message),
+//                system: self.info.name,
+                id: self.info.name + s.name
+            }
             self.notify(state)
         })        
         self.subscribers.push(s)

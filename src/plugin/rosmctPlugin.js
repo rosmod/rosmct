@@ -80,125 +80,144 @@ define([
 
             // define object providers
 
+            // for root
+            // identifier.namespace = 'rosmct'
+            // identifier.key = 'rsCollection'
+            // for system
+            // identifier.namespace = system name
+            // identifier.key = 'ros.system'
+            // for topic
+            // identifier.namespace = system name
+            // identifier.key = topic name
+
             /**
-             * Object Provider
+             * rosmct Object Provider
              */
-            var objectProvider = {
+            var rosmctObjectProvider = {
 
                 /**
-                 * constructs domain object
-                 * @param {object} identifier 
-                 * @param {object} identifier.namespace 
-                 * @param {object} identifier.key 
+                 * constructs objects in the rosmct namespace
+                 * @param {object} identifier
+                 * @param {object} identifier.namespace
+                 * @param {object} identifier.key
                  */
-                get: function (identifier) {
-                    console.log("Identifier: " + identifier);
-                    // for root
-                    // identifier.namespace = 'rsCollection'
-                    // identifier.key = dictionary name
-                    // for system
-                    // identifier.namespace = 'rsCollection'
-                    // identifier.key = system name
-                    // for topic
-                    // identifier.namespace = 'topic'
-                    // identifier.key = topic name
-                    return getDictionary().then(function (dictionary) {
-                       // console.log("object provider's dictionary");
-                        //console.log(dictionary);
-                        if (identifier.key === 'rsCollection') {
+                get: function(identifier){
+                    console.log('Identifier: ', identifier);
+
+                    return getDictionary().then(function(dictionary){
+                        if (identifier.key === 'rsCollection'){
                             return {
                                 identifier: identifier,
                                 name: dictionary.name,
                                 type: 'folder',
-                                location: 'ROOT'
-                            };
-                        } else if (identifier.key === 'rs') {
-                            let sys = dictionary.Systems.filter(function(s){
-                                return identifier.namespace === s.name
-                            })[0]
-                            return {
-                                identifier: identifier,
-                                name: sys.name,
-                                type: 'folder',
-                                location: 'rosmct:rsCollection'
+                                location: 'Root'
                             }
                         } else {
-                            let sys = dictionary.Systems.filter(function(s){
-                                return identifier.namespace === s.name
-                            })[0]
-                            console.log('identifier sys:', sys)
-                            var topic = dictionary.Systems[sys].topics.filter(function (m) {
-                                return m.name === identifier.name;
-                            });
-                            console.log("Topic: " + topic)
                             return {
                                 identifier: identifier,
-                                name: topic.name,
-                                type: 'ros.telemetry',
-                                telemetry: {
-                                    values: topic.values
-                                },
-                                location: identifier.namespace + ":" + 'rs'
-                            };
+                                name: 'Unknown',
+                                type: 'folder',
+                                location: 'Root'
+                            }
                         }
-                    });
+                    })
                 }
-                
-            }
-
-            var rsCollectionObjectProvider = {
-                
-            }
-
-            var rsObjectProvider = {
-                
-            }
-
-            var topicObjectProvider = {
-                
             }
 
             /**
-             * Composition Provider
+             * rosmct Composition Provider
              */
-            var compositionProvider = {
+            var rosmctCompositionProvider = {
                 appliesTo: function (domainObject) {
-                    return (domainObject.identifier.key === 'rsCollection' ||
-                            domainObject.identifier.key == 'rs') &&
-                        domainObject.type === 'folder';
+                    return domainObject.identifier.namespace == 'rosmct'  &&
+                                      domainObject.type === 'folder'
                 },
                 load: function (domainObject) {
                     return getDictionary()
                         .then(function (dictionary) {
-                            if(domainObject.identifier.key === 'rsCollection'){
-                                return dictionary.Systems.map(function(s){
-                                    return {
-                                        namespace: s.name,
-                                        key: 'rs'
-                                    }
-                                })
-                            } else {
-                                return dictionary.Systems.filter(function(s){
-                                    return s.name === domainObject.identifier.namespace
-                                })[0].topics.map(function(topic){
-                                    return {
-                                        namespace: domainObject.identifier.namespace,
-                                        key: topic.name
-                                    }
-                                })
-                            }
+                            return dictionary.Systems.map(function(sys){
+                                return {
+                                    namespace: sys.name,
+                                    key: 'ros.system'
+                                }
+                            })
                         })
                 }
             }
 
-            var rsCollectionCompositionProvider = {
-                
-            }
 
-            var rsCompositionProvider = {
-                
+            /**
+             * Factory that generates object and composiition providers for each system within rosmct
+             * @returns {Array} array of objects containing object provider and composition provider
+             */
+            function systemProviderFactory(){
+                return getDictionary().then(function(dictionary){
+                    dictionary.Systems.map(function(sys){
+                        let namespace = sys.name
+                        
+                        let systemObjectProvider = {
+                            /**
+                             * constructs objects in the 'system name' namespace
+                             * @param {object} identifier
+                             * @param {object} identifier.namespace
+                             * @param {object} identifier.key
+                             */
+                            get: function(identifier){
+                                return getDictionary().then(function (dictionary){
+                                    if(identifier.key == 'ros.system'){
+                                        return {
+                                            identifier: identifier,
+                                            name: sys.name,
+                                            type: 'folder',
+                                            location: 'rosmct:rsCollection'
+                                        }
+                                    } else { //only other option for now is it is a topic
+                                        let topic = sys.topics.filter(function(m){
+                                            return m.name == identifier.key
+                                        })[0]
+                                        return {
+                                            identifier: identifier,
+                                            name: topic.name,
+                                            type: 'ros.topic.telemetry',
+                                            location: namespace + ':ros.system' 
+                                        }
+                                    }
+                                    
+                                    
+                                })
+
+                            }
+                        }
+
+                        /**
+                         * composition provider for a ros system
+                         */
+                        let systemCompositionProvider = {
+                            appliesTo: function(domainObject){
+                                return domainObject.identifier.namespace === namespace &&
+                                    domainObject.type === 'folder'
+                            },
+                            load: function(domainObject){
+                                return sys.topics.map(function(topic){
+                                    return {
+                                        namespace: namespace,
+                                        identifier: topic.name
+                                    }
+                                })
+                            }
+                        }
+
+                        return {
+                            namespace: namespace,
+                            objectProvider: systemObjectProvider,
+                            compositionProvider: systemCompositionProvider
+                        }
+                    })
+                })
             }
-        
+                                           
+
+
 
 
             /**
@@ -213,16 +232,21 @@ define([
                 key: 'rsCollection'
             })
 
-            openmct.objects.addProvider('rsCollection',rsCollectionObjectProvier);
-            openmct.objects.addProvider('rs', rsObjectProvider);
-            openmct.objects.addProvider('topic', topicObjectProvider);
+            //add rosmct proviers
+            openmct.objects.addProvider('rosmct', rosmctObjectProvider);
+            openmct.composition.addProvider(rosmctCompositionProvider);
 
-            openmct.composition.addProvider(rsCollectionCompositionProvider);
-            openmct.composition.addProvider(rsCompositionProvider);
+            //add system providers
+            systemProviderFactory().then(function(systems){
+                systems.map(function(providers){
+                    openmct.objects.addProvider(providers.namespace, providers.objectProvider)
+                    openmct.composition.addProvider(providers.compositionProvider)
+                })
+            })
 
-            openmct.types.addType('ros.telemetry', {
-                name: 'Ros Telemetry Point',
-                description: 'Ros telemetry provided by roslib/bridge',
+            openmct.types.addType('ros.topic.telemetry', {
+                name: 'Ros Topic Telemetry Point',
+                description: 'Ros topic telemetry provided by roslib/bridge',
                 cssClass: 'icon-telemetry'
             })
 
