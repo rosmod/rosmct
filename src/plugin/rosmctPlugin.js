@@ -46,18 +46,13 @@
                     dictionary: function(dict) { /**< Resolves dictionary promise upon receipt of dictionary*/
                         deferredDictionary.resolve(dict);
                     },
-                    topic: function(topic) { /**< Calls listener callback for each topic value  upon receipt of topic telemetry*/
-                        topic.value.map(function(val){
-                            var key = topic.id + '.' + val.name
-                            if(listener[key]){
-                                var point = {
-                                    timestamp: topic.timestamp,
-                                    value: val,
-                                    id: key
-                                }
-                                listener[key](point)
-                            }
-                        })
+                    point: function(point) { /**< Calls listener callback for each topic value  upon receipt of topic telemetry*/
+                        console.log('Recieved Telemetry point: ', point)
+                        if(listener[point.id]){
+                            console.log('And it has a listener!')
+                            listener[point.id](point)
+                        }
+
                     }
                 }
 
@@ -216,20 +211,24 @@
                                             type: 'folder',
                                             location: 'rosmct:rsCollection'
                                         })
-                                    } else if(sys.topics.filter(function(topic){
+                                    } /*else if(sys.topics.filter(function(topic){
                                         return identifier.key === topic.name
-                                    }).length){
+                                       }).length){*/
+                                    else{
                                         var topic = sys.topics.filter(function(m){
                                             return m.name == identifier.key
                                         })[0]
                                         var t =  {
                                             identifier: identifier,
                                             name: topic.name,
-                                            type: 'folder',
+                                            type: 'ros.topic.telemetry',
+                                            telemetry: {
+                                                values: topic.values
+                                            },
                                             location: namespace + ':ros.system' 
                                         }
                                         deferred.resolve(t)
-                                    } else{ //must be a topic value at this point
+                                    } /*else{ //must be a topic value at this point
                                         
                                         var topicName = ''
                                         var topicValue = sys.topics.map(function(topic){
@@ -255,7 +254,7 @@
                                             }
                                         }
                                         deferred.resolve(v)
-                                    }
+                                    }*/
                                     return deferred.promise
                                 }
                             }
@@ -339,6 +338,9 @@
                              * Telemetry Provider
                              */
                             let telemetryProvider = {
+                                supportRequest: function(domainObject){
+                                    return false;
+                                },
                                 supportsSubscribe: function(domainObject){
                                     console.log('supportSubscribe called for: ', domainObject)
                                     console.log('supports? : ', domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace)
@@ -347,12 +349,12 @@
                                 subscribe: function(domainObject, callback){
                                     console.log('Subscrbie called for: ', domainObject)
                                     var key = domainObject.identifier.namespace + '.' + domainObject.identifier.key
-                                    var message = domainObject.identifier.namespace + '.' + domainObject.parent
+                                    console.log('ID: ', key)
                                     listener[key] = callback
-                                    telemetrysocket.send('subscribe ' + message)
-                                        function unsubscribe() {
+                                    telemetrysocket.send('subscribe ' + key)
+                                    return function unsubscribe() {
                                         delete listener[key]
-                                        telemetrysocket.send('unsubscribe ' + message)
+                                        telemetrysocket.send('unsubscribe ' + key)
                                     }
                                 }
                             }
@@ -396,7 +398,7 @@
                         console.log('Providers', providers)
                         openmct.objects.addProvider(providers.namespace, providers.objectProvider)
                         openmct.composition.addProvider(providers.systemCompositionProvider)
-                        openmct.composition.addProvider(providers.topicCompositionProvider)
+//                        openmct.composition.addProvider(providers.topicCompositionProvider)
                         openmct.telemetry.addProvider(providers.telemetryProvider)
                     })
                 })
