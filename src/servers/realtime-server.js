@@ -89,13 +89,12 @@ function RealtimeServer() {
          * @param {string} topic.timestamp telemetry timestamp (epoch time)
          * @param {object} topic.data telemetry data
          */
-        function notifySubscribers(topic) {
-            //todo 
-            if (subscribed[topic.id]) {
+        function notifySubscribers(point) {
+            if (subscribed[point.id]) {
 
                 ws.send(JSON.stringify({
-                    type: "topic",
-                    value: topic
+                    type: "point",
+                    value: point
                 }));
             }
         }
