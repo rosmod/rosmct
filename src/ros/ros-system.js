@@ -34,10 +34,10 @@ function RosSystem (rosbridgeurl, rosbridgeport, info) {
  * @param {string} point.timestamp telemetry timestamp (epoch time)
  * @param {object} point.data telemetry data
  */
-RosSystem.prototype.notify = function (point) {
+RosSystem.prototype.notify = function (topic) {
     var self = this
     self.listeners.forEach(function (l) {
-        l(point)
+        l(topic)
     })
 }
 
@@ -201,6 +201,7 @@ RosSystem.prototype.updateSubscribers = function () {
 //                system: self.info.name,
                 id: self.info.name + s.name
             }
+            console.log('Notifying topic: ', state)
             self.notify(state)
         })        
         self.subscribers.push(s)

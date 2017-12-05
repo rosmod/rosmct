@@ -46,11 +46,18 @@
                     dictionary: function(dict) { /**< Resolves dictionary promise upon receipt of dictionary*/
                         deferredDictionary.resolve(dict);
                     },
-                    point: function(point) { /**< Calls listener callup upon receipt of telemetry point*/
-                        if (listener[point.id]) {
-                            listener[point.id](point);
-                        }
-
+                    topic: function(topic) { /**< Calls listener callback for each topic value  upon receipt of topic telemetry*/
+                        topic.value.map(function(val){
+                            var key = topic.id + '.' + val.name
+                            if(listener[key]){
+                                var point = {
+                                    timestamp: topic.timestamp,
+                                    value: val,
+                                    id: key
+                                }
+                                listener[key](point)
+                            }
+                        })
                     }
                 }
 
@@ -87,9 +94,12 @@
                 // for system
                 // identifier.namespace = system name
                 // identifier.key = 'ros.system'
-                // for topic
+                // for topics
                 // identifier.namespace = system name
                 // identifier.key = topic name
+                // for topic values
+                // identifier.namespace = system name
+                // identifier.key = topic name + '.' + value name
 
                 /**
                  * rosmct Object Provider
@@ -154,49 +164,118 @@
                  */
                 function systemProviderFactory(){
                     return getDictionary().then(function(dictionary){
-                        console.log('provider promise!', dictionary)
                         return dictionary.Systems.map(function(sys){
-                            console.log('System: ', sys)
                             let namespace = sys.name
-                            
-                            let systemObjectProvider = {
-                                /**
-                                 * constructs objects in the 'system name' namespace
-                                 * @param {object} identifier
-                                 * @param {object} identifier.namespace
-                                 * @param {object} identifier.key
-                                 */
-                                get: function(identifier){
-                                    return getDictionary().then(function (dictionary){
-                                        if(identifier.key == 'ros.system'){
-                                            return {
-                                                identifier: identifier,
-                                                name: sys.name,
-                                                type: 'folder',
-                                                location: 'rosmct:rsCollection'
-                                            }
-                                        } else { //only other option for now is it is a topic
-                                            let topic = sys.topics.filter(function(m){
-                                                return m.name == identifier.key
-                                            })[0]
-                                            var t =  {
-                                                identifier: identifier,
-                                                name: topic.name,
-                                                type: 'folder',
-                                                location: namespace + ':ros.system' 
-                                            }
-                                            console.log('returning topic', t)
-                                            return t
-                                        }
-                                        
-                                        
-                                    })
 
+                            
+                            /**
+                             * constructs objects in the 'system name' namespace
+                             * @param {object} identifier
+                             * @param {object} identifier.namespace
+                             * @param {object} identifier.key
+                             */
+                            /*let systemObjectProvider = {
+                             get: function(identifier){
+                             if(identifier.key == 'ros.system'){
+                             return {
+                             identifier: identifier,
+                             name: sys.name,
+                             type: 'folder',
+                             location: 'rosmct:rsCollection'
+                             }
+                             } else { //only other option for now is it is a topic
+                             let topic = sys.topics.filter(function(m){
+                             return m.name == identifier.key
+                             })[0]
+                             var t =  {
+                             identifier: identifier,
+                             name: topic.name,
+                             type: 'folder',
+                             location: namespace + ':ros.system' 
+                             }
+                             console.log('returning topic', t)
+                             return t
+                             }
+                             }
+                             }*/
+                            
+                            /**
+                             * constructs objects in the 'system name' namespace
+                             * @param {object} identifier
+                             * @param {object} identifier.namespace
+                             * @param {object} identifier.key
+                             */
+                            let systemObjectProvider = {
+                                get: function(identifier){
+                                    //console.log(identifier)
+                                    var deferred = Q.defer()
+                                    if(identifier.key === 'ros.system'){
+                                        deferred.resolve({
+                                            identifier: identifier,
+                                            name: sys.name,
+                                            type: 'folder',
+                                            location: 'rosmct:rsCollection'
+                                        })
+                                    } else if(sys.topics.filter(function(topic){
+                                        return identifier.key === topic.name
+                                    }).length){
+                                        var topic = sys.topics.filter(function(m){
+                                            return m.name == identifier.key
+                                        })[0]
+                                        var t =  {
+                                            identifier: identifier,
+                                            name: topic.name,
+                                            type: 'folder',
+                                            location: namespace + ':ros.system' 
+                                        }
+                                        deferred.resolve(t)
+                                    } else{ //must be a topic value at this point
+                                        
+                                        var topicName = ''
+                                        var topicValue = sys.topics.map(function(topic){
+                                            var val = topic.values.filter(function(value) {
+                                                return identifier.key === topic.name + '.' + value.name
+                                            })
+                                            if(val.length){
+                                                topicName = topic.name
+                                                return val[0]
+                                            }
+                                        }).filter(function(v){
+                                            return v != null 
+                                        })
+                                        topicValue = topicValue[0]
+                                        var v = {
+                                            identifier: identifier,
+                                            name: topicValue.name,
+                                            type: 'ros.topic.telemetry',
+                                            parent: topicName,
+                                            location: namespace + ':' + topicName,
+                                            telemetry: {
+                                                values: topicValue
+                                            }
+                                        }
+                                        deferred.resolve(v)
+                                    }
+                                    return deferred.promise
                                 }
                             }
 
                             /**
                              * composition provider for a ros system
+                             * @param {object} domainObject
+                             * @param {object} domainObject.identifier
+                             * A composite key that provides a
+                             * universally unique identifier for this
+                             * object. The namespace and key are used
+                             * to identify the object. The key must be
+                             * unique within the namespace.
+                             * @param {object} domainObject.name
+                             * @param {object} domainObject.type All
+                             * objects in Open MCT have a type. Types
+                             * allow you to form an ontology of
+                             * knowledge and provide an abstraction
+                             * for grouping, visualizing, and
+                             * interpreting data.
                              */
                             let systemCompositionProvider = {
                                 appliesTo: function(domainObject){
@@ -205,8 +284,6 @@
                                 },
                                 load: function(domainObject){
                                     var deferred = Q.defer()
-                                    console.log('In ' + sys.name + ' comp provider load')
-                                    
                                     var children =  sys.topics.map(function(topic){
                                         return {
                                             namespace: namespace,
@@ -214,75 +291,86 @@
                                         }
                                     })
                                     deferred.resolve(children)
-                                    var c = deferred.promise.then(function(a){console.log(a)})
                                     return deferred.promise
+                                }
+                            }
+
+                            /**
+                             * composition provider for topic values
+                             * @param {object} domainObject
+                             * @param {object} domainObject.identifier
+                             * A composite key that provides a
+                             * universally unique identifier for this
+                             * object. The namespace and key are used
+                             * to identify the object. The key must be
+                             * unique within the namespace.
+                             * @param {object} domainObject.name
+                             * @param {object} domainObject.type All
+                             * objects in Open MCT have a type. Types
+                             * allow you to form an ontology of
+                             * knowledge and provide an abstraction
+                             * for grouping, visualizing, and
+                             * interpreting data.
+                             */
+                            let topicCompositionProvider = {
+                                appliesTo: function(domainObject){
+                                    return domainObject.identifier.namespace === namespace &&
+                                        sys.topics.filter(function(topic) {
+                                            return domainObject.identifier.key === topic.name
+                                        }).length > 0
+                                },
+                                load: function(domainObject){
+                                    var deferred = Q.defer()
+                                    var topic = sys.topics.filter(function(topic){
+                                        return domainObject.identifier.key === topic.name
+                                    })[0]
+                                    var children =  topic.values.map(function(val){
+                                        return {
+                                            namespace: namespace,
+                                            key: topic.name + '.'+ val.name
+                                        }
+                                    })
+                                    deferred.resolve(children)
+                                    return deferred.promise
+                                }
+                            }
+
+                            /**
+                             * Telemetry Provider
+                             */
+                            let telemetryProvider = {
+                                supportsSubscribe: function(domainObject){
+                                    console.log('supportSubscribe called for: ', domainObject)
+                                    console.log('supports? : ', domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace)
+                                    return domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace
+                                },
+                                subscribe: function(domainObject, callback){
+                                    console.log('Subscrbie called for: ', domainObject)
+                                    var key = domainObject.identifier.namespace + '.' + domainObject.identifier.key
+                                    var message = domainObject.identifier.namespace + '.' + domainObject.parent
+                                    listener[key] = callback
+                                    telemetrysocket.send('subscribe ' + message)
+                                        function unsubscribe() {
+                                        delete listener[key]
+                                        telemetrysocket.send('unsubscribe ' + message)
+                                    }
                                 }
                             }
 
                             let providers = {
                                 namespace: namespace,
                                 objectProvider: systemObjectProvider,
-                                compositionProvider: systemCompositionProvider
+                                systemCompositionProvider: systemCompositionProvider,
+                                topicCompositionProvider: topicCompositionProvider,
+                                telemetryProvider: telemetryProvider
                             }
                             return providers
                         })
                     })
                 }
                 
-/*
-                var testObjectProvider = {
-                    get: function(identifier){
-                        console.log('In External System obj provider get')
-                        return getDictionary().then(function (dictionary){
-                            if(identifier.key == 'ros.system'){
-                                return {
-                                    identifier: identifier,
-                                    name: 'External System',
-                                    type: 'folder',
-                                    location: 'rosmct:rsCollection'
-                                }
-                            } else { //only other option for now is it is a topic
-                                let topic = dictionary.Systems["External System"].topics.filter(function(m){
-                                    return m.name == identifier.key
-                                })[0]
-                                return {
-                                    identifier: identifier,
-                                    name: topic.name,
-                                    type: 'ros.topic.telemetry',
-                                    location: 'External System:ros.system' 
-                                }
-                            }
-                            
-                            
-                        })
-                    }
-                }
-
-                var testCompositionProvider = {
-                    appliesTo: function(domainObject){
-                        console.log('In External Sytem comp provider appliesTo')
-                        return domainObject.identifier.namespace === 'External System' &&
-                            domainObject.type === 'folder'
-                    },
-                    load: function(domainObject){
-                        return getDictionary().then(function(dictionary){
-                            return dictionary.Systems["External System"].topics.map(function(topic){
-                                return {
-                                    namespace: "External System",
-                                    identifier: topic.name
-                                }
-                            })
-                            
-                        })
-                    }
-                }
-*/
 
 
-                /**
-                 * Telemetry Provider
-                 */
-                var telemetryProvider = {}
 
                 // install all providers into openmct object
 
@@ -296,19 +384,20 @@
                 openmct.composition.addProvider(rosmctCompositionProvider);
 
                 /*
-                openmct.objects.addProvider('External System', testObjectProvider);
-                openmct.composition.addProvider(testCompositionProvider);
+                 openmct.objects.addProvider('External System', testObjectProvider);
+                 openmct.composition.addProvider(testCompositionProvider);
                  */
 
                 
                 
                 //add system providers
                 systemProviderFactory().then(function(sys){
-                    
                     sys.map(function(providers){
-                        console.log('Providers',providers)
+                        console.log('Providers', providers)
                         openmct.objects.addProvider(providers.namespace, providers.objectProvider)
-                        openmct.composition.addProvider(providers.compositionProvider)
+                        openmct.composition.addProvider(providers.systemCompositionProvider)
+                        openmct.composition.addProvider(providers.topicCompositionProvider)
+                        openmct.telemetry.addProvider(providers.telemetryProvider)
                     })
                 })
                 

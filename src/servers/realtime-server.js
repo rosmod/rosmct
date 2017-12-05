@@ -84,23 +84,25 @@ function RealtimeServer() {
         /**
          * Callback function to pass to ros-system collection
          * for listener registration
-         * @param {object} point a telemetry point
-         * @param {string} point.id telemetry datum name
-         * @param {string} point.timestamp telemetry timestamp (epoch time)
-         * @param {object} point.data telemetry data
+         * @param {object} topic a telemetry point
+         * @param {string} topic.id telemetry datum name
+         * @param {string} topic.timestamp telemetry timestamp (epoch time)
+         * @param {object} topic.data telemetry data
          */
-        function notifySubscribers(point) {
-            if (subscribed[point.id]) {
+        function notifySubscribers(topic) {
+            //todo 
+            if (subscribed[topic.id]) {
 
                 ws.send(JSON.stringify({
-                    type: "point",
-                    value: point
+                    type: "topic",
+                    value: topic
                 }));
             }
         }
 
         //Assign a callback for execution on incoming message
         ws.on('message', function (message) {
+            console.log('Received message: ', message)
             var parts = message.split(' '),
                 handler = handlers[parts[0]];
             if (handler) {
