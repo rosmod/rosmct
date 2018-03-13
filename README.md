@@ -36,6 +36,6 @@ ROSMCT consists of several distinct components
 
 `todo`
 
-## Dictionary Specification
+# Dictionary Specification
 
 `todo`
