@@ -14,6 +14,19 @@ ROSMCT consists of several distinct components
 
 ## Rosbridge
 
+ROS wiki page: [wiki.ros.org/rosbridge_suite](wiki.ros.org/rosbridge_suite)
+rosbridge github: [https://github.com/RobotWebTools/rosbridge_suite](https://github.com/RobotWebTools/rosbridge_suite)
+rosbridge protocoal: [https://github.com/RobotWebTools/rosbridge_suite/blob/groovy-devel/ROSBRIDGE_PROTOCOL.md](https://github.com/RobotWebTools/rosbridge_suite/blob/groovy-devel/ROSBRIDGE_PROTOCOL.md)
+
+Rosbridge runs on the local ros system and acts a a websocket server to translate ROS-to-JSON and JSON-to_ROS with remote systems. The main functions of rosbridge utilized by rosmct are to:
+1. Query all available topics in the system
+2. Allow web clients to subscribe to a topic in the system
+3. (TODO) Allow web clients to publish to a topic in the system
+
+`TODO: configuring the server-side connection between the realtime server and rosbridge (order of deployment, url/port, etc)`
+
+## Roslibjs
+
 `todo`
 
 ## Real-time Server
