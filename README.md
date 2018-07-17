@@ -1,4 +1,11 @@
 # ROSMCT (Robot Operating System Mission Control Technologies)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/documentation-wiki-blue.svg?style=flat-square)](https://github.com/rosmod/rosmct/wiki)
+[![npm](https://img.shields.io/npm/v/rosmct.svg)](https://www.npmjs.com/package/rosmct)
+[![npm](https://img.shields.io/npm/dm/rosmct.svg)](https://www.npmjs.com/package/rosmct)
+[![npm](https://img.shields.io/npm/dt/rosmct.svg)](https://www.npmjs.com/package/rosmct)
+
+[![rosmct.collaborative-design.org](https://img.shields.io/website-up-down-green-red/https/rosmct.collaborative-design.org/index.html.svg?label=rosmct.collaborative-design.org)](https://rosmct.collaborative-design.org/index.html)
 
 ROSMCT is a data visualization and telemetry system for [ROS](wiki.ros.org) built on nasa's [Open MCT](https://github.com/nasa/openmct). ROSMCT communicates to a [rosbridge](wiki.ros.org/rosbridge_suite) node using [roslibjs](wiki.ros.org/roslibjs). ROSMCT then uses the open mct platform to display and interact with the system.
 
