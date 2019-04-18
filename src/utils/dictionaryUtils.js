@@ -20,7 +20,8 @@ var formatConversionMap = {
     "float64": "float",
 
     "byte": "byte",
-    "string": "string"
+    "string": "string",
+    "bool": "bool"
 };
 
 /**
