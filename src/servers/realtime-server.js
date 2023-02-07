@@ -24,7 +24,6 @@ function RealtimeServer() {
      * @param {object} ws websocket
      */
     router.ws('/notify', function(ws){
-        
         ws.on('message', function(message){
             console.log('Notification Message: ', JSON.stringify(message, null, 2))
             var msg = JSON.parse(message);
@@ -38,7 +37,7 @@ function RealtimeServer() {
             }
         })
     })
-    
+
     /**
      * Client websocket setup
      * @param {object} ws websocket
@@ -47,10 +46,10 @@ function RealtimeServer() {
         var unlisten = rossystems.listen(notifySubscribers);
 
         // Active subscriptions for this connection
-        var subscribed = {}; 
+        var subscribed = {};
 
         // Handlers for specific requests
-        var handlers = { 
+        var handlers = {
             /**
              * subscribe handler
              * @param {string} id telemetry datum id
@@ -78,7 +77,6 @@ function RealtimeServer() {
                         }));
                     });
             }
-                       
         };
 
         /**
@@ -117,7 +115,6 @@ function RealtimeServer() {
         // Stop sending telemetry updates for this connection when closed
         ws.on('close', unlisten);
     });
-    
 
     return router;
 };

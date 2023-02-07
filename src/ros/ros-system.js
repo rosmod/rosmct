@@ -113,9 +113,9 @@ RosSystem.prototype.generateDictionary = function () {
              topics: [],
              types: []
              }
-             
+
              to
-             
+
              {
              topic1: type1,
              topic2: type2,
@@ -166,7 +166,7 @@ RosSystem.prototype.getDictionary = function () {
 RosSystem.prototype.updateSubscribers = function () {
     var self = this
     self.subscribers = []
-    
+
     self.dictionary.topics.forEach(function (topic) {
         let s = new ROSLIB.Topic({
             ros: self.ros,
@@ -200,7 +200,7 @@ RosSystem.prototype.updateSubscribers = function () {
             state.id = self.info.name + '.'+ s.name
             console.log('Notifying topic: ', state)
             self.notify(state)
-        })        
+        })
         self.subscribers.push(s)
     })
 }

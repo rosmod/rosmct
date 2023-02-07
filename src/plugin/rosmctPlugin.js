@@ -1,6 +1,6 @@
 /**
  * Plugin to interface with a realtime server that is connecte to a set of ros systems
- * Provides ability to subscribe to ros topics 
+ * Provides ability to subscribe to ros topics
  */
 /* global define */
 (function(def){
@@ -21,14 +21,13 @@
 
                 /**
                  * Handles local dictionary requests
-                 * @returns {object} dictionary promise 
+                 * @returns {object} dictionary promise
                  */
                 function getDictionary(){
                     return deferredDictionary.promise
                 }
 
                 // set up websocket and telemetry handling
-                
                 /**
                  * Telemetry websocket to realtime server
                  */
@@ -42,7 +41,7 @@
                 /**
                  * Handlers for telemetry mesages
                  */
-                var handlers = { 
+                var handlers = {
                     dictionary: function(dict) { /**< Resolves dictionary promise upon receipt of dictionary*/
                         deferredDictionary.resolve(dict);
                     },
@@ -162,7 +161,6 @@
                         return dictionary.Systems.map(function(sys){
                             let namespace = sys.name
 
-                            
                             /**
                              * constructs objects in the 'system name' namespace
                              * @param {object} identifier
@@ -186,14 +184,14 @@
                              identifier: identifier,
                              name: topic.name,
                              type: 'folder',
-                             location: namespace + ':ros.system' 
+                             location: namespace + ':ros.system'
                              }
                              console.log('returning topic', t)
                              return t
                              }
                              }
                              }*/
-                            
+
                             /**
                              * constructs objects in the 'system name' namespace
                              * @param {object} identifier
@@ -225,11 +223,11 @@
                                             telemetry: {
                                                 values: topic.values
                                             },
-                                            location: namespace + ':ros.system' 
+                                            location: namespace + ':ros.system'
                                         }
                                         deferred.resolve(t)
                                     } /*else{ //must be a topic value at this point
-                                        
+
                                         var topicName = ''
                                         var topicValue = sys.topics.map(function(topic){
                                             var val = topic.values.filter(function(value) {
@@ -240,7 +238,7 @@
                                                 return val[0]
                                             }
                                         }).filter(function(v){
-                                            return v != null 
+                                            return v != null
                                         })
                                         topicValue = topicValue[0]
                                         var v = {
@@ -370,9 +368,6 @@
                         })
                     })
                 }
-                
-
-
 
                 // install all providers into openmct object
 
@@ -390,8 +385,6 @@
                  openmct.composition.addProvider(testCompositionProvider);
                  */
 
-                
-                
                 //add system providers
                 systemProviderFactory().then(function(sys){
                     sys.map(function(providers){
@@ -402,8 +395,6 @@
                         openmct.telemetry.addProvider(providers.telemetryProvider)
                     })
                 })
-                
-                
 
                 openmct.types.addType('ros.topic.telemetry', {
                     name: 'Ros Topic Telemetry Point',
@@ -412,13 +403,6 @@
                 })
 
                 //openmct.telemetry.addProvider(telemetryProvider)
-
-                
-
-                
-
-                
-                
             };
         };
 
