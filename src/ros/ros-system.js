@@ -184,7 +184,11 @@ RosSystem.prototype.updateSubscribers = function () {
                     var path = val.name.split('.')
                     var tmp = message
                     for(let i = 0; i < path.length; i++){
-                        tmp = tmp[path[i]]
+		        if (Array.isArray(tmp)) {
+//			    console.log(tmp)
+		        }else {
+                            tmp = tmp[path[i]]
+		        }
                     }
                     values[val.name] = tmp
                 }
@@ -198,7 +202,6 @@ RosSystem.prototype.updateSubscribers = function () {
             var state = s.parse(message)
             state.timestamp = timestamp
             state.id = self.info.name + '.'+ s.name
-            console.log('Notifying topic: ', state)
             self.notify(state)
         })
         self.subscribers.push(s)
