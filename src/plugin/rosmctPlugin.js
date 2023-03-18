@@ -39,6 +39,11 @@
                 var listener = {}
 
                 /**
+                 * Promises list for historical data
+                 */
+                var historical = {}
+
+                /**
                  * Handlers for telemetry mesages
                  */
                 var handlers = {
@@ -49,6 +54,24 @@
                         if (listener[point.id]) {
                             for (i of listener[point.id]) {
                                 i(point)
+                            }
+                        }
+                    },
+                    history: function(data) {
+                        if (data == []) return
+                        var id = data[0].id
+                        var points = []
+                        for (point of data) {
+                            points.push({
+                                ...JSON.parse(point.data),
+                                timestamp: new Date(point.ts).getTime(),
+                                id: point.id
+                            })
+                        }
+                        if (historical[id]) {
+                          for (i of historical[id]) {
+                                i.resolve(points)
+                                historical[id].splice(historical[id].indexOf(i), 1)
                             }
                         }
                     }
@@ -103,7 +126,6 @@
                      * @param {object} identifier.key
                      */
                     get: function(identifier){
-
                         return getDictionary().then(function(dictionary){
                             if (identifier.key === 'rsCollection'){
                                 return {
@@ -330,8 +352,8 @@
                              * Telemetry Provider
                              */
                             let telemetryProvider = {
-                                supportRequest: function(domainObject){
-                                    return false;
+                                supportsRequest: function(domainObject){
+                                    return domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace;
                                 },
                                 supportsSubscribe: function(domainObject){
                                     return domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace
@@ -352,6 +374,22 @@
                                         listener[key].splice(listener[key].indexOf(callback), 1)
                                         telemetrysocket.send('unsubscribe ' + key)
                                     }
+                                },
+                                request: function(domainObject, options){
+                                    var topic = sys.topics.filter((t) => {
+                                        return domainObject.identifier.key.includes(t.name.replaceAll('/', '.'))
+                                    })[0]
+                                    var key = domainObject.identifier.namespace + '.' + topic.name
+
+                                    telemetrysocket.send('request ' + key + ' ' + options.start + ' ' + options.end)
+
+                                    var deferred = Q.defer()
+                                    if (historical[key] == undefined) {
+                                        historical[key] = []
+                                    }
+                                    historical[key].push(deferred)
+
+                                    return deferred.promise
                                 }
                             }
 
