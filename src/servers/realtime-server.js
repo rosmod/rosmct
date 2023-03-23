@@ -20,21 +20,27 @@ function RealtimeServer() {
         key: "rsCollection"
     });
 
-    const client = new Client({
-        database: "qdb",
-        host: "127.0.0.1",
-        password: "quest",
-        port: 8812,
-        user: "admin",
-    })
+    var client;
 
-    client.connect()
+    function connect() {
+        client = new Client({
+            database: "qdb",
+            host: "127.0.0.1",
+            password: "quest",
+            port: 8812,
+            user: "admin",
+        })
 
-    client.on('error', (err) => {
-        console.error('something bad has happened!', err.stack)
-    })
+        client.connect()
 
-    client.on('end', () => {client.connect()}) // do it again
+        client.on('error', (err) => {
+            console.error(err.stack)
+        })
+
+        client.on('end', () => connect()) // do it again
+    }
+
+    connect()
 
     /**
      * Client websocket setup
@@ -76,15 +82,15 @@ function RealtimeServer() {
                     }
                     rossystems.getDictionary()
                         .then(function(dict){
-                            if (dict.Systems == []) return
+                            if (dict.Systems.length === 0) return
+                            ws.send(JSON.stringify({
+                                type: "dictionary",
+                                value: dict
+                            }));
                             if (res.rowCount > 0) {
                                 client.query("UPDATE dictionaries SET dictionary = '" + JSON.stringify(dict) + "'").then(() => client.query("COMMIT"))
 			    }else {
                                 client.query("INSERT INTO dictionaries (dictionary) VALUES ('" + JSON.stringify(dict) + "')").then(() => client.query("COMMIT"))
-                                ws.send(JSON.stringify({
-                                    type: "dictionary",
-                                    value: dict
-                                }));
                              }
                         });
                 })
