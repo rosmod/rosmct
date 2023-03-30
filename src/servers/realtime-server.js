@@ -40,7 +40,9 @@ function RealtimeServer() {
         client.on('end', () => connect()) // do it again
     }
 
-    connect()
+    if (!process.env.DISABLE_QUESTDB) {
+      connect()
+    }
 
     /**
      * Client websocket setup
@@ -73,32 +75,43 @@ function RealtimeServer() {
              * Sends dictionary request over websocket
              */
             dictionary: function() {
-                client.query("SELECT dictionary FROM dictionaries").then((res) => {
-                    if (res.rowCount > 0) {
-                        ws.send(JSON.stringify({
-                            type: "dictionary",
-                            value: JSON.parse(res.rows[0].dictionary)
-                        }))
-                    }
+                if (process.env.DISABLE_QUESTDB) {
                     rossystems.getDictionary()
                         .then(function(dict){
-                            if (dict.Systems.length === 0) return
+                            ws.send(JSON.stringify({
+                               type: "dictionary",
+                               value: dict
+                            }))
+                        })
+                }else {
+                    client.query("SELECT dictionary FROM dictionaries").then((res) => {
+                        if (res.rowCount > 0) {
                             ws.send(JSON.stringify({
                                 type: "dictionary",
-                                value: dict
-                            }));
-                            if (res.rowCount > 0) {
-                                client.query("UPDATE dictionaries SET dictionary = '" + JSON.stringify(dict) + "'").then(() => client.query("COMMIT"))
-			    }else {
-                                client.query("INSERT INTO dictionaries (dictionary) VALUES ('" + JSON.stringify(dict) + "')").then(() => client.query("COMMIT"))
-                             }
-                        });
-                })
+                                value: JSON.parse(res.rows[0].dictionary)
+                            }))
+                        }
+                        rossystems.getDictionary()
+                            .then(function(dict){
+                                if (dict.Systems.length === 0) return
+                                ws.send(JSON.stringify({
+                                    type: "dictionary",
+                                    value: dict
+                                }));
+                                if (res.rowCount > 0) {
+                                    client.query("UPDATE dictionaries SET dictionary = '" + JSON.stringify(dict) + "'").then(() => client.query("COMMIT"))
+		                      	    }else {
+                                    client.query("INSERT INTO dictionaries (dictionary) VALUES ('" + JSON.stringify(dict) + "')").then(() => client.query("COMMIT"))
+                                }
+                            });
+                    })
+                }
             },
             /**
              * Returns historical telemetry values
              */
             request: function(options) {
+                if (process.env.DISABLE_QUESTDB) return
                 options = options.split(' ')
                 client.query("SELECT to_timezone(ts, '" + Intl.DateTimeFormat().resolvedOptions().timeZone + "') AS ts, id, data FROM " + options[0].split('.')[0] + " WHERE id = '" + options[0] + "' AND ts > " + Math.round(parseFloat(options[1])*1000).toString() + " AND ts < " + Math.round(parseFloat(options[2])*1000).toString()).then((res) => {
                     ws.send(JSON.stringify({
