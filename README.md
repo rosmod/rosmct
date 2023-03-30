@@ -32,6 +32,24 @@ Rosbridge runs on the local ros system and acts a a websocket server to translat
 
 `TODO: configuring the server-side connection between the realtime server and rosbridge (order of deployment, url/port, etc)`
 
+## QuestDB setup
+
+Recording historical telemetry requires setting up a QuestDB instance. This can be disabled with the `DISABLE_QUESTDB` environment variable.
+
+The schema is as follow:
+
+```sql
+CREATE TABLE <rossystemname> (
+  ts timestamp,
+  id symbol,
+  data string
+) timestamp(ts);
+
+CREATE TABLE dictionaries (
+  dictionary string
+);
+```
+
 ## Roslibjs
 
 `todo`
