@@ -62,7 +62,6 @@ function parseDetails(topicDetails){
             value.name = parentName + "." + value.name
         })
         return parsedSubDetail
-        
     }
 
     function parseDetail(detail){
@@ -88,7 +87,7 @@ function parseDetails(topicDetails){
         }
         return parsedDetail
     }
-    
+
     parsedDetails = parsedDetails.concat(parseDetail(topicDetails[0]))
 
     var timeval = {
@@ -101,7 +100,7 @@ function parseDetails(topicDetails){
         }
     };
     parsedDetails.push(timeval);
-    return parsedDetails;    
+    return parsedDetails;
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
  * Plugin to interface with a realtime server that is connecte to a set of ros systems
- * Provides ability to subscribe to ros topics 
+ * Provides ability to subscribe to ros topics
  */
 /* global define */
 (function(def){
@@ -21,14 +21,13 @@
 
                 /**
                  * Handles local dictionary requests
-                 * @returns {object} dictionary promise 
+                 * @returns {object} dictionary promise
                  */
                 function getDictionary(){
                     return deferredDictionary.promise
                 }
 
                 // set up websocket and telemetry handling
-                
                 /**
                  * Telemetry websocket to realtime server
                  */
@@ -40,19 +39,41 @@
                 var listener = {}
 
                 /**
+                 * Promises list for historical data
+                 */
+                var historical = {}
+
+                /**
                  * Handlers for telemetry mesages
                  */
-                var handlers = { 
+                var handlers = {
                     dictionary: function(dict) { /**< Resolves dictionary promise upon receipt of dictionary*/
                         deferredDictionary.resolve(dict);
                     },
                     point: function(point) { /**< Calls listener callback for each topic value  upon receipt of topic telemetry*/
-                        console.log('Recieved Telemetry point: ', point)
-                        if(listener[point.id]){
-                            console.log('And it has a listener!')
-                            listener[point.id](point)
+                        if (listener[point.id]) {
+                            for (i of listener[point.id]) {
+                                i(point)
+                            }
                         }
-
+                    },
+                    history: function(data) {
+                        if (data == []) return
+                        var id = data[0].id
+                        var points = []
+                        for (point of data) {
+                            points.push({
+                                ...JSON.parse(point.data),
+                                timestamp: new Date(point.ts).getTime(),
+                                id: point.id
+                            })
+                        }
+                        if (historical[id]) {
+                          for (i of historical[id]) {
+                                i.resolve(points)
+                                historical[id].splice(historical[id].indexOf(i), 1)
+                            }
+                        }
                     }
                 }
 
@@ -62,9 +83,6 @@
                  */
                 telemetrysocket.onmessage = function (event) {
                     var message = JSON.parse(event.data);
-                    console.log('Received telemetry message of type: ' + message.type);
-                    console.log('Message contents: ');
-                    console.log(message.value);
 
                     if(message.type){
                         var handler = handlers[message.type];
@@ -108,7 +126,6 @@
                      * @param {object} identifier.key
                      */
                     get: function(identifier){
-
                         return getDictionary().then(function(dictionary){
                             if (identifier.key === 'rsCollection'){
                                 return {
@@ -162,7 +179,6 @@
                         return dictionary.Systems.map(function(sys){
                             let namespace = sys.name
 
-                            
                             /**
                              * constructs objects in the 'system name' namespace
                              * @param {object} identifier
@@ -186,14 +202,17 @@
                              identifier: identifier,
                              name: topic.name,
                              type: 'folder',
-                             location: namespace + ':ros.system' 
+                             location: namespace + ':ros.system'
                              }
                              console.log('returning topic', t)
                              return t
                              }
                              }
                              }*/
-                            
+
+                            // NOTE: replacing '/' with '.' in topic names is necessary due to the way openmct handles object identifiers
+                            // openmct/src/ui/router/Browse.js:64
+
                             /**
                              * constructs objects in the 'system name' namespace
                              * @param {object} identifier
@@ -202,7 +221,6 @@
                              */
                             let systemObjectProvider = {
                                 get: function(identifier){
-                                    //console.log(identifier)
                                     var deferred = Q.defer()
                                     if(identifier.key === 'ros.system'){
                                         deferred.resolve({
@@ -211,50 +229,46 @@
                                             type: 'folder',
                                             location: 'rosmct:rsCollection'
                                         })
-                                    } /*else if(sys.topics.filter(function(topic){
-                                        return identifier.key === topic.name
-                                       }).length){*/
-                                    else{
+                                    } else if(sys.topics.filter(function(topic){
+                                        return identifier.key === topic.name.replaceAll('/', '.')
+                                       }).length){
                                         var topic = sys.topics.filter(function(m){
-                                            return m.name == identifier.key
+                                            return m.name.replaceAll('/', '.') == identifier.key
                                         })[0]
                                         var t =  {
                                             identifier: identifier,
-                                            name: topic.name,
-                                            type: 'ros.topic.telemetry',
-                                            telemetry: {
-                                                values: topic.values
-                                            },
-                                            location: namespace + ':ros.system' 
+                                            name: topic.name.replaceAll('/', '.'),
+                                            type: 'folder',
+                                            location: namespace + ':ros.system'
                                         }
                                         deferred.resolve(t)
-                                    } /*else{ //must be a topic value at this point
-                                        
-                                        var topicName = ''
+                                    } else{ //must be a topic value at this point
+
+                                        var baseTopic;
                                         var topicValue = sys.topics.map(function(topic){
                                             var val = topic.values.filter(function(value) {
-                                                return identifier.key === topic.name + '.' + value.name
+                                                return identifier.key === topic.name.replaceAll('/', '.') + '.' + value.name
                                             })
                                             if(val.length){
-                                                topicName = topic.name
+                                                baseTopic = topic
                                                 return val[0]
                                             }
                                         }).filter(function(v){
-                                            return v != null 
+                                            return v != null
                                         })
                                         topicValue = topicValue[0]
                                         var v = {
                                             identifier: identifier,
                                             name: topicValue.name,
                                             type: 'ros.topic.telemetry',
-                                            parent: topicName,
-                                            location: namespace + ':' + topicName,
+                                            parent: baseTopic.name.replaceAll('/', '.'),
+                                            location: namespace + ':' + baseTopic.name.replaceAll('/', '.'),
                                             telemetry: {
-                                                values: topicValue
+                                                values: [topicValue, baseTopic.values.find(o => o.key === "utc")]
                                             }
                                         }
                                         deferred.resolve(v)
-                                    }*/
+                                    }
                                     return deferred.promise
                                 }
                             }
@@ -286,7 +300,7 @@
                                     var children =  sys.topics.map(function(topic){
                                         return {
                                             namespace: namespace,
-                                            key: topic.name
+                                            key: topic.name.replaceAll('/', '.')
                                         }
                                     })
                                     deferred.resolve(children)
@@ -315,18 +329,18 @@
                                 appliesTo: function(domainObject){
                                     return domainObject.identifier.namespace === namespace &&
                                         sys.topics.filter(function(topic) {
-                                            return domainObject.identifier.key === topic.name
+                                            return domainObject.identifier.key === topic.name.replaceAll('/', '.')
                                         }).length > 0
                                 },
                                 load: function(domainObject){
                                     var deferred = Q.defer()
                                     var topic = sys.topics.filter(function(topic){
-                                        return domainObject.identifier.key === topic.name
+                                        return domainObject.identifier.key === topic.name.replaceAll('/', '.')
                                     })[0]
                                     var children =  topic.values.map(function(val){
                                         return {
                                             namespace: namespace,
-                                            key: topic.name + '.'+ val.name
+                                            key: topic.name.replaceAll('/', '.') + '.' + val.name
                                         }
                                     })
                                     deferred.resolve(children)
@@ -338,24 +352,44 @@
                              * Telemetry Provider
                              */
                             let telemetryProvider = {
-                                supportRequest: function(domainObject){
-                                    return false;
+                                supportsRequest: function(domainObject){
+                                    return domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace;
                                 },
                                 supportsSubscribe: function(domainObject){
-                                    console.log('supportSubscribe called for: ', domainObject)
-                                    console.log('supports? : ', domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace)
                                     return domainObject.type === 'ros.topic.telemetry' && domainObject.identifier.namespace === namespace
                                 },
                                 subscribe: function(domainObject, callback){
-                                    console.log('Subscrbie called for: ', domainObject)
-                                    var key = domainObject.identifier.namespace + '.' + domainObject.identifier.key
-                                    console.log('ID: ', key)
-                                    listener[key] = callback
+                                    var topic = sys.topics.filter((t) => {
+                                        return domainObject.identifier.key.includes(t.name.replaceAll('/', '.'))
+                                    })[0]
+                                    var key = domainObject.identifier.namespace + '.' + topic.name
+
+                                    if (listener[key] == undefined) {
+                                      listener[key] = []
+                                    }
+
+                                    listener[key].push(callback)
                                     telemetrysocket.send('subscribe ' + key)
                                     return function unsubscribe() {
-                                        delete listener[key]
+                                        listener[key].splice(listener[key].indexOf(callback), 1)
                                         telemetrysocket.send('unsubscribe ' + key)
                                     }
+                                },
+                                request: function(domainObject, options){
+                                    var topic = sys.topics.filter((t) => {
+                                        return domainObject.identifier.key.includes(t.name.replaceAll('/', '.'))
+                                    })[0]
+                                    var key = domainObject.identifier.namespace + '.' + topic.name
+
+                                    telemetrysocket.send('request ' + key + ' ' + options.start + ' ' + options.end)
+
+                                    var deferred = Q.defer()
+                                    if (historical[key] == undefined) {
+                                        historical[key] = []
+                                    }
+                                    historical[key].push(deferred)
+
+                                    return deferred.promise
                                 }
                             }
 
@@ -370,9 +404,6 @@
                         })
                     })
                 }
-                
-
-
 
                 // install all providers into openmct object
 
@@ -390,20 +421,15 @@
                  openmct.composition.addProvider(testCompositionProvider);
                  */
 
-                
-                
                 //add system providers
                 systemProviderFactory().then(function(sys){
                     sys.map(function(providers){
-                        console.log('Providers', providers)
                         openmct.objects.addProvider(providers.namespace, providers.objectProvider)
                         openmct.composition.addProvider(providers.systemCompositionProvider)
-//                        openmct.composition.addProvider(providers.topicCompositionProvider)
+                        openmct.composition.addProvider(providers.topicCompositionProvider)
                         openmct.telemetry.addProvider(providers.telemetryProvider)
                     })
                 })
-                
-                
 
                 openmct.types.addType('ros.topic.telemetry', {
                     name: 'Ros Topic Telemetry Point',
@@ -412,13 +438,6 @@
                 })
 
                 //openmct.telemetry.addProvider(telemetryProvider)
-
-                
-
-                
-
-                
-                
             };
         };
 

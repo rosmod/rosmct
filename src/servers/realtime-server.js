@@ -6,6 +6,7 @@
 
 var express = require('express');
 var RosSystemCollection = require('../ros/ros-system-collection');
+var { Client } = require("pg")
 
 /**
 * Sets up handling of web socket connections
@@ -19,26 +20,30 @@ function RealtimeServer() {
         key: "rsCollection"
     });
 
-    /**
-     * Rosbridge notification websocket setup
-     * @param {object} ws websocket
-     */
-    router.ws('/notify', function(ws){
-        
-        ws.on('message', function(message){
-            console.log('Notification Message: ', JSON.stringify(message, null, 2))
-            var msg = JSON.parse(message);
-            if(msg.status === 'OPEN'){
-                rossystems.addSystem(msg.rosbridgeurl, msg.rosbridgeport, {
-                    name: msg.name,
-                    key: 'ros.system'
-                })
-            } else if (msg.status === 'CLOSE'){
-                rossystems.removeSystem(msg.rosbridgeurl, msg.rosbridgeport)
-            }
+    var client;
+
+    function connect() {
+        client = new Client({
+            database: "qdb",
+            host: "127.0.0.1",
+            password: "quest",
+            port: 8812,
+            user: "admin",
         })
-    })
-    
+
+        client.connect()
+
+        client.on('error', (err) => {
+            console.error(err.stack)
+        })
+
+        client.on('end', () => connect()) // do it again
+    }
+
+    if (!process.env.DISABLE_QUESTDB) {
+      connect()
+    }
+
     /**
      * Client websocket setup
      * @param {object} ws websocket
@@ -47,10 +52,10 @@ function RealtimeServer() {
         var unlisten = rossystems.listen(notifySubscribers);
 
         // Active subscriptions for this connection
-        var subscribed = {}; 
+        var subscribed = {};
 
         // Handlers for specific requests
-        var handlers = { 
+        var handlers = {
             /**
              * subscribe handler
              * @param {string} id telemetry datum id
@@ -70,15 +75,66 @@ function RealtimeServer() {
              * Sends dictionary request over websocket
              */
             dictionary: function() {
-                rossystems.getDictionary()
-                    .then(function(dict){
-                        ws.send(JSON.stringify({
-                            type: "dictionary",
-                            value: dict
-                        }));
-                    });
+                if (process.env.DISABLE_QUESTDB) {
+                    rossystems.getDictionary()
+                        .then(function(dict){
+                            ws.send(JSON.stringify({
+                               type: "dictionary",
+                               value: dict
+                            }))
+                        })
+                }else {
+                    client.query("SELECT dictionary FROM dictionaries").then((res) => {
+                        if (res.rowCount > 0) {
+                            ws.send(JSON.stringify({
+                                type: "dictionary",
+                                value: JSON.parse(res.rows[0].dictionary)
+                            }))
+                        }
+                        rossystems.getDictionary()
+                            .then(function(dict){
+                                if (dict.Systems.length === 0) return
+                                ws.send(JSON.stringify({
+                                    type: "dictionary",
+                                    value: dict
+                                }));
+                                if (res.rowCount > 0) {
+                                    client.query("UPDATE dictionaries SET dictionary = '" + JSON.stringify(dict) + "'").then(() => client.query("COMMIT"))
+		                      	    }else {
+                                    client.query("INSERT INTO dictionaries (dictionary) VALUES ('" + JSON.stringify(dict) + "')").then(() => client.query("COMMIT"))
+                                }
+                            });
+                    })
+                }
+            },
+            /**
+             * Returns historical telemetry values
+             */
+            request: function(options) {
+                if (process.env.DISABLE_QUESTDB) return
+                options = options.split(' ')
+                client.query("SELECT to_timezone(ts, '" + Intl.DateTimeFormat().resolvedOptions().timeZone + "') AS ts, id, data FROM " + options[0].split('.')[0] + " WHERE id = '" + options[0] + "' AND ts > " + Math.round(parseFloat(options[1])*1000).toString() + " AND ts < " + Math.round(parseFloat(options[2])*1000).toString()).then((res) => {
+                    ws.send(JSON.stringify({
+                        type: "history",
+                        value: res.rows
+                    }))
+                })
+            },
+
+            OPEN: function(msg) {
+                msg = JSON.parse(msg)
+                rossystems.addSystem(msg.rosbridgeurl, msg.rosbridgeport, {
+                    name: msg.name,
+                    key: 'ros.system'
+                }).then(() => {
+                    unlisten = rossystems.listen(notifySubscribers)
+                })
+            },
+
+            CLOSE: function(msg) {
+                msg = JSON.parse(msg)
+                rossystems.removeSystem(msg.rosbridgeurl, msg.rosbridgeport)
             }
-                       
         };
 
         /**
@@ -90,8 +146,9 @@ function RealtimeServer() {
          * @param {object} topic.data telemetry data
          */
         function notifySubscribers(point) {
-            if (subscribed[point.id]) {
+            client.query("INSERT INTO "+point.id.split('.')[0]+"(ts, id, data) VALUES ($1, $2, $3);", [point.timestamp.toString() + "000", point.id, JSON.stringify(point)]).then(() => client.query("COMMIT"))
 
+            if (subscribed[point.id]) {
                 ws.send(JSON.stringify({
                     type: "point",
                     value: point
@@ -101,7 +158,6 @@ function RealtimeServer() {
 
         //Assign a callback for execution on incoming message
         ws.on('message', function (message) {
-            console.log('Received message: ', message)
             var parts = message.split(' '),
                 handler = handlers[parts[0]];
             if (handler) {
@@ -117,7 +173,6 @@ function RealtimeServer() {
         // Stop sending telemetry updates for this connection when closed
         ws.on('close', unlisten);
     });
-    
 
     return router;
 };

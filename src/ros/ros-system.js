@@ -113,9 +113,9 @@ RosSystem.prototype.generateDictionary = function () {
              topics: [],
              types: []
              }
-             
+
              to
-             
+
              {
              topic1: type1,
              topic2: type2,
@@ -166,7 +166,7 @@ RosSystem.prototype.getDictionary = function () {
 RosSystem.prototype.updateSubscribers = function () {
     var self = this
     self.subscribers = []
-    
+
     self.dictionary.topics.forEach(function (topic) {
         let s = new ROSLIB.Topic({
             ros: self.ros,
@@ -184,7 +184,11 @@ RosSystem.prototype.updateSubscribers = function () {
                     var path = val.name.split('.')
                     var tmp = message
                     for(let i = 0; i < path.length; i++){
-                        tmp = tmp[path[i]]
+		        if (Array.isArray(tmp)) {
+//			    console.log(tmp)
+		        }else {
+                            tmp = tmp[path[i]]
+		        }
                     }
                     values[val.name] = tmp
                 }
@@ -198,9 +202,8 @@ RosSystem.prototype.updateSubscribers = function () {
             var state = s.parse(message)
             state.timestamp = timestamp
             state.id = self.info.name + '.'+ s.name
-            console.log('Notifying topic: ', state)
             self.notify(state)
-        })        
+        })
         self.subscribers.push(s)
     })
 }
